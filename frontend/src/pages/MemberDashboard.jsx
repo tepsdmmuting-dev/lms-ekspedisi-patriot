@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import QuizModal from '../components/QuizModal';
@@ -14,6 +15,43 @@ const MemberDashboard = () => {
   // Navigation State
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [playingVideo, setPlayingVideo] = useState(null);
+
+  const getEmbedUrl = (url) => {
+    if (!url) return '';
+    const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&]{11})/);
+    if (ytMatch && ytMatch[1]) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`;
+    const ytShortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (ytShortsMatch && ytShortsMatch[1]) return `https://www.youtube.com/embed/${ytShortsMatch[1]}?autoplay=1`;
+    const tiktokMatch = url.match(/tiktok\.com\/.*?\/video\/(\d+)/);
+    if (tiktokMatch && tiktokMatch[1]) return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
+    const igMatch = url.match(/instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/);
+    if (igMatch && igMatch[1]) return `https://www.instagram.com/p/${igMatch[1]}/embed/`;
+    const spotifyMatch = url.match(/open\.spotify\.com\/(track|playlist|episode|album)\/([a-zA-Z0-9]+)/);
+    if (spotifyMatch) return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveMatch && driveMatch[1]) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    return url;
+  };
+
+  const isEmbeddable = (url) => {
+    if (!url) return false;
+    return !!(
+      url.match(/(?:youtu\.be\/|youtube\.com\/)/) ||
+      url.match(/tiktok\.com\/.*?\/video\/\d+/) ||
+      url.match(/instagram\.com\/(?:p|reel|tv)\//) ||
+      url.match(/open\.spotify\.com\/(track|playlist|episode|album)\//) ||
+      url.match(/drive\.google\.com\/file\/d\//)
+    );
+  };
+
+  const handleMediaClick = (mod) => {
+    if (isEmbeddable(mod.external_url)) {
+      setPlayingVideo(mod);
+    } else {
+      window.open(mod.media_platform === 'gdrive_pdf' ? formatGdriveDownload(mod.external_url) : mod.external_url, '_blank');
+    }
+  };
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -286,7 +324,7 @@ const MemberDashboard = () => {
                             onMouseEnter={() => fetchQuizzesForModule(mod.id)}
                           >
                             {/* Thumbnail */}
-                            <a href={mod.media_platform === 'gdrive_pdf' ? formatGdriveDownload(mod.external_url) : mod.external_url} target="_blank" rel="noopener noreferrer" className="w-full sm:w-32 h-40 sm:h-auto bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden shrink-0 relative group flex items-center justify-center border border-white/50 dark:border-slate-700/50 cursor-pointer block transition-colors duration-500">
+                            <div onClick={() => handleMediaClick(mod)} className="w-full sm:w-32 h-40 sm:h-auto bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden shrink-0 relative group flex items-center justify-center border border-white/50 dark:border-slate-700/50 cursor-pointer block transition-colors duration-500">
                               {mod.image_url ? (
                                  <div className="absolute inset-0 bg-cover bg-center w-full h-full opacity-90 group-hover:scale-105 transition-transform duration-500 z-0" style={{ backgroundImage: `url('${mod.image_url}')` }}></div>
                               ) : null}
@@ -297,7 +335,7 @@ const MemberDashboard = () => {
                               <div className="absolute bottom-2 left-2 right-2 text-center bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-[10px] font-bold tracking-wider z-20">
                                 {mod.category}
                               </div>
-                            </a>
+                            </div>
 
                             {/* Content */}
                             <div className="flex-1 flex flex-col">
@@ -313,9 +351,9 @@ const MemberDashboard = () => {
                                   </span>
                                 </button>
                               </div>
-                              <a href={mod.media_platform === 'gdrive_pdf' ? formatGdriveDownload(mod.external_url) : mod.external_url} target="_blank" rel="noopener noreferrer" className="block mb-2">
+                              <div onClick={() => handleMediaClick(mod)} className="block mb-2 cursor-pointer">
                                 <h3 className="font-headline-sm font-bold text-primary dark:text-white line-clamp-2 leading-snug hover:text-[#004A74] dark:hover:text-blue-400 hover:underline decoration-primary/30 dark:decoration-blue-400/30 underline-offset-4 transition-all">{mod.title}</h3>
-                              </a>
+                              </div>
                               <p className="text-sm text-on-surface-variant dark:text-slate-400 line-clamp-2 mb-4 flex-1 transition-colors duration-500">{mod.description}</p>
                               
                               {/* Quiz Row */}
@@ -362,6 +400,37 @@ const MemberDashboard = () => {
             });
           }}
         />
+      )}
+
+      {playingVideo && createPortal(
+        <div className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all overflow-y-auto">
+          <div className="w-full max-w-4xl flex flex-col gap-4 relative my-auto">
+            {/* Close Button */}
+            <div className="flex justify-end">
+              <button onClick={() => setPlayingVideo(null)} className="w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-red-500 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-all shadow-lg border border-white/20 hover:border-red-500 hover:scale-110 mb-2 md:mb-0 md:absolute md:-top-16 md:-right-2">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            {/* Video Player */}
+            <div className="w-full bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/20 aspect-video relative">
+              <iframe
+                src={getEmbedUrl(playingVideo.external_url)}
+                className="w-full h-full absolute inset-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
+              ></iframe>
+            </div>
+
+            {/* Title & Description Container */}
+            <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl text-left">
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-2 leading-snug">{playingVideo.title}</h2>
+              <p className="text-sm md:text-base text-slate-300 leading-relaxed whitespace-pre-wrap">{playingVideo.description}</p>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
