@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
@@ -80,12 +81,17 @@ router.post('/users', [authMiddleware, adminMiddleware], async (req, res) => {
       return res.status(400).json({ msg: 'Email already exists' });
     }
     
-    // Mock hash since bcrypt is not installed in this demo
-    const mockHash = '$2b$10$EpI1Fv6/Gv.c.1Y45v6YjO0P0gYy2Dq6R5bVn6R5bVn6R5bVn6R5b';
+    // Hash the password
+    let passwordToHash = password;
+    if (!passwordToHash) {
+      passwordToHash = 'password123'; // Default fallback
+    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(passwordToHash, salt);
     
     const result = await db.query(
       'INSERT INTO users (name, email, password_hash, role, region, district) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, region, district',
-      [name, email, mockHash, role || 'trainee', region, district]
+      [name, email, hashedPassword, role || 'trainee', region, district]
     );
     res.json(result.rows[0]);
   } catch (err) {

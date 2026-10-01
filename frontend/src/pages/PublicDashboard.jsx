@@ -388,7 +388,7 @@ const PublicDashboard = () => {
           <a className="text-white/80 text-sm font-bold hover:text-white transition-colors" href="#">Kebijakan Privasi</a>
         </div>
         <div className="text-white/50 text-sm font-bold mt-4 md:mt-0 text-center md:text-right">
-          © 2026 Ekspedisi Patriot x UGM
+          © Tim Ekspedisi Patriot UGM 2026
         </div>
       </footer>
 

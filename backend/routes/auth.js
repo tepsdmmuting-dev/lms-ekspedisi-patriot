@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { authMiddleware } = require('../middleware/auth');
 
@@ -19,10 +20,10 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Usually we would compare hashed password here with bcrypt
-    // e.g., const isMatch = await bcrypt.compare(password, user.password_hash);
-    // For simplicity in this demo without bcrypt installed, we accept any password since we have mock hashes
-    // DO NOT DO THIS IN PRODUCTION!
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid Credentials' });
+    }
     
     // Create payload
     const payload = {
