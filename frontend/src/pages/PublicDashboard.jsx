@@ -135,20 +135,21 @@ const PublicDashboard = () => {
         <div className="hidden dark:block absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full blur-3xl" style={{ background: 'radial-gradient(closest-side, rgba(250,204,21,0.05) 0%, rgba(250,204,21,0) 100%)' }}></div>
       </div>
 
-      {/* TopNavBar */}
-      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center h-16 px-margin-mobile md:px-margin-desktop bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl border-b border-white/60 dark:border-white/10 shadow-sm transition-colors duration-500">
+      {/* TopNavBar - Floating Glass Pill */}
+      <nav className="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-7xl z-50 flex justify-between items-center h-14 md:h-16 px-5 md:px-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-full border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-500">
         <div className="flex items-center gap-gutter">
-          <div className="flex items-center gap-4">
-            <img alt="Logo UGM" className="h-8 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkTLwI5PyjJ_qSLp20QPfwAedU9rwm7Zrs_IpuEJ-VfpxE3cKRXpMtcrtcHd04Q7yXjIEKv5XZ_l4v4e7aNrbs2NRf4C2SBiKylN5G7A_MFMXJc7umvcwOdbV6sSwdVBqEcN90C37s43LSfNdyfYJ_a_1mP4N55M5ZOJ5L55Ahkh_6HZO51GUnB2ZOeGFKSf06SBG1hsNTUOCc_EdOLZevdjsL0ilvAN8D45-ma9EghLfi9g5nOAkFqjLsRjPsTMPqhUvVH01hQjo" />
-            <img alt="Logo Kementrian" className="h-8 w-auto drop-shadow-sm transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtJOaXHmbBoEsx_kvjzbBODYsUgAfDOOCJuJ-qbYSd8p1Y18kmkfMXCz8t7s6S9tlfu7OKVOXo_KNsAKK3Sh1_Af2Bs4q1F6yRw-FTX2j8fFC8nSTt9Qm7cCQJEqlwt9bjGQm2TITwNIHBzR4-G44UCp-0_csYhQFULCodO-iM1r0apaiFarIT_o0xzQ8F-Ex5ienUggc1LrdzHFfmUdi3M2FYLwoPzHRiLfATqJiidQJ-Yy95EhaYQdZy2y1RAU32wtHD8Rfyd14" />
+          <div className="flex items-center gap-3 md:gap-4">
+            <img alt="Logo UGM" className="h-7 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkTLwI5PyjJ_qSLp20QPfwAedU9rwm7Zrs_IpuEJ-VfpxE3cKRXpMtcrtcHd04Q7yXjIEKv5XZ_l4v4e7aNrbs2NRf4C2SBiKylN5G7A_MFMXJc7umvcwOdbV6sSwdVBqEcN90C37s43LSfNdyfYJ_a_1mP4N55M5ZOJ5L55Ahkh_6HZO51GUnB2ZOeGFKSf06SBG1hsNTUOCc_EdOLZevdjsL0ilvAN8D45-ma9EghLfi9g5nOAkFqjLsRjPsTMPqhUvVH01hQjo" />
+            <img alt="Logo Kementrian" className="h-7 w-auto drop-shadow-sm transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtJOaXHmbBoEsx_kvjzbBODYsUgAfDOOCJuJ-qbYSd8p1Y18kmkfMXCz8t7s6S9tlfu7OKVOXo_KNsAKK3Sh1_Af2Bs4q1F6yRw-FTX2j8fFC8nSTt9Qm7cCQJEqlwt9bjGQm2TITwNIHBzR4-G44UCp-0_csYhQFULCodO-iM1r0apaiFarIT_o0xzQ8F-Ex5ienUggc1LrdzHFfmUdi3M2FYLwoPzHRiLfATqJiidQJ-Yy95EhaYQdZy2y1RAU32wtHD8Rfyd14" />
           </div>
         </div>
 
         {/* Desktop Nav Links */}
-        <div className="hidden lg:flex items-center gap-8 font-label-lg font-bold text-slate-700 dark:text-white">
-          <button onClick={() => scrollToSection('materi-publik')} className="hover:text-primary dark:hover:text-slate-300 transition-colors">Materi Publik</button>
-          <button onClick={() => scrollToSection('pengumuman')} className="hover:text-primary dark:hover:text-slate-300 transition-colors">Pengumuman & Dokumen</button>
-          <button onClick={() => scrollToSection('kisah-inspiratif')} className="hover:text-primary dark:hover:text-slate-300 transition-colors">Kisah Inspiratif</button>
+        <div className="hidden lg:flex items-center gap-2 font-label-lg font-bold text-slate-700 dark:text-white">
+          <button onClick={() => scrollToSection('dashboard')} className="px-4 py-2 rounded-full hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Dashboard</button>
+          <button onClick={() => scrollToSection('materi-publik')} className="px-4 py-2 rounded-full hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Materi Publik</button>
+          <button onClick={() => scrollToSection('pengumuman')} className="px-4 py-2 rounded-full hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Pengumuman & Dokumen</button>
+          <button onClick={() => scrollToSection('kisah-inspiratif')} className="px-4 py-2 rounded-full hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Kisah Inspiratif</button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -169,24 +170,29 @@ const PublicDashboard = () => {
 
       {/* Mobile Dropdown Menu (Moved outside nav to fix nested backdrop-blur bug) */}
       {isMenuOpen && (
-        <div className="fixed top-16 left-0 w-full bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl border-b border-white/60 dark:border-white/10 shadow-xl py-6 px-6 flex flex-col gap-6 lg:hidden z-40 transition-colors duration-500 rounded-b-3xl">
-          <button onClick={() => scrollToSection('materi-publik')} className="text-left font-label-lg font-bold text-slate-800 dark:text-white hover:text-primary dark:hover:text-slate-300">Materi Publik</button>
-          <button onClick={() => scrollToSection('pengumuman')} className="text-left font-label-lg font-bold text-slate-800 dark:text-white hover:text-primary dark:hover:text-slate-300">Pengumuman & Dokumen</button>
-          <button onClick={() => scrollToSection('kisah-inspiratif')} className="text-left font-label-lg font-bold text-slate-800 dark:text-white hover:text-primary dark:hover:text-slate-300">Kisah Inspiratif</button>
-          <hr className="border-slate-200/50 dark:border-slate-700/50" />
-          <button
-            onClick={() => navigate('/login')}
-            className="bg-primary dark:bg-yellow-500 text-white dark:text-slate-800 px-6 py-3 rounded-2xl font-label-lg font-bold w-full shadow-md dark:hover:bg-yellow-400 transition-colors">
-            Member Login
-          </button>
+        <div className="fixed top-20 md:top-24 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-7xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)] py-6 px-4 flex flex-col gap-2 lg:hidden z-40 transition-colors duration-500 rounded-3xl">
+          <button onClick={() => scrollToSection('dashboard')} className="text-left w-full px-4 py-3 rounded-2xl font-label-lg font-bold text-slate-800 dark:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Dashboard</button>
+          <button onClick={() => scrollToSection('materi-publik')} className="text-left w-full px-4 py-3 rounded-2xl font-label-lg font-bold text-slate-800 dark:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Materi Publik</button>
+          <button onClick={() => scrollToSection('pengumuman')} className="text-left w-full px-4 py-3 rounded-2xl font-label-lg font-bold text-slate-800 dark:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Pengumuman & Dokumen</button>
+          <button onClick={() => scrollToSection('kisah-inspiratif')} className="text-left w-full px-4 py-3 rounded-2xl font-label-lg font-bold text-slate-800 dark:text-white hover:bg-white/60 dark:hover:bg-slate-800/60 hover:shadow-sm hover:backdrop-blur-md transition-all duration-300">Kisah Inspiratif</button>
+          <div className="px-4 py-2">
+            <hr className="border-slate-200/50 dark:border-slate-700/50" />
+          </div>
+          <div className="px-2">
+            <button
+              onClick={() => navigate('/login')}
+              className="bg-primary dark:bg-yellow-500 text-white dark:text-slate-800 px-6 py-3.5 rounded-2xl font-label-lg font-bold w-full shadow-md dark:hover:bg-yellow-400 transition-colors">
+              Member Login
+            </button>
+          </div>
         </div>
       )}
 
       {/* Main Content */}
-      <main className="flex-grow pt-32 pb-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full z-10">
+      <main className="flex-grow pt-24 pb-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full z-10">
 
         {/* Hero Section */}
-        <section className="mb-24 md:mb-32 flex flex-col md:flex-row items-center gap-12">
+        <section id="dashboard" className="min-h-[calc(100vh-6rem)] scroll-mt-24 mb-24 md:mb-32 flex flex-col md:flex-row items-center gap-12">
           <div className="md:w-1/2 space-y-8 relative">
             <div className="inline-block px-4 py-1.5 rounded-full bg-white/50 dark:bg-white/5 backdrop-blur-md border border-white dark:border-white/10 shadow-sm mb-2 transition-colors duration-500">
               <span className="text-sm font-bold tracking-widest text-primary dark:text-white uppercase">Kolaborasi UGM & Kementerian Transmigrasi</span>
@@ -325,7 +331,7 @@ const PublicDashboard = () => {
         )}
 
         {/* Kisah Inspiratif Section */}
-        <section id="kisah-inspiratif" className="relative py-16 md:py-24 mb-12 scroll-mt-32">
+        <section id="kisah-inspiratif" className="relative min-h-[calc(100vh-6rem)] flex flex-col justify-center py-16 md:py-24 mb-12 scroll-mt-24">
           {/* Full-width soft gradient background */}
           <div className="absolute -top-16 md:-top-24 -bottom-16 md:-bottom-24 w-[100vw] left-1/2 -translate-x-1/2 flex flex-col -z-10 pointer-events-none">
             <div className="h-24 md:h-32 bg-gradient-to-b from-[#FBBF24]/0 dark:from-slate-700/0 to-[#FBBF24]/[0.15] dark:to-slate-700/60 transition-colors duration-500"></div>
@@ -378,17 +384,38 @@ const PublicDashboard = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#004A74] dark:bg-slate-900/40 dark:backdrop-blur-xl w-full py-16 px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-10 relative z-10 border-t border-[#004A74] dark:border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-colors duration-500">
-        <div className="text-2xl font-bold text-white mb-2 md:mb-0 drop-shadow-sm tracking-tight">
-          Ekspedisi Patriot
-        </div>
-        <div className="flex flex-wrap justify-center gap-8 md:gap-12">
-          <a className="text-white/80 text-sm font-bold hover:text-white transition-colors" href="#">Kontak Kami</a>
-          <a className="text-white/80 text-sm font-bold hover:text-white transition-colors" href="#">Syarat &amp; Ketentuan</a>
-          <a className="text-white/80 text-sm font-bold hover:text-white transition-colors" href="#">Kebijakan Privasi</a>
-        </div>
-        <div className="text-white/50 text-sm font-bold mt-4 md:mt-0 text-center md:text-right">
-          © Tim Ekspedisi Patriot UGM 2026
+      <footer className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl w-full py-6 md:py-8 px-margin-mobile md:px-margin-desktop relative z-10 border-t border-white/60 dark:border-white/10 shadow-[0_-8px_32px_rgba(0,0,0,0.05)] transition-colors duration-500">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-start gap-12 lg:gap-8 relative">
+          
+          {/* Bagian Kiri: Glassmorphism Card & Deskripsi */}
+          <div className="flex flex-col gap-5 max-w-lg">
+            <div className="text-slate-800 dark:text-white/80 font-bold tracking-[0.2em] text-xs uppercase">Kolaborasi Strategis</div>
+            
+            {/* Kotak Liquid Glass Sebenarnya */}
+            <div className="bg-white/60 dark:bg-white/10 backdrop-blur-xl rounded-full px-5 py-3 md:px-8 md:py-3.5 flex flex-wrap md:flex-nowrap items-center gap-4 md:gap-6 border border-white/60 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-colors duration-500 w-fit">
+              <img alt="Logo UGM" className="h-8 md:h-9 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkTLwI5PyjJ_qSLp20QPfwAedU9rwm7Zrs_IpuEJ-VfpxE3cKRXpMtcrtcHd04Q7yXjIEKv5XZ_l4v4e7aNrbs2NRf4C2SBiKylN5G7A_MFMXJc7umvcwOdbV6sSwdVBqEcN90C37s43LSfNdyfYJ_a_1mP4N55M5ZOJ5L55Ahkh_6HZO51GUnB2ZOeGFKSf06SBG1hsNTUOCc_EdOLZevdjsL0ilvAN8D45-ma9EghLfi9g5nOAkFqjLsRjPsTMPqhUvVH01hQjo" />
+              <div className="w-px h-8 md:h-10 bg-slate-300 dark:bg-white/30 transition-colors duration-500"></div>
+              <img alt="Logo Kementrian" className="h-8 md:h-9 w-auto drop-shadow-sm transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtJOaXHmbBoEsx_kvjzbBODYsUgAfDOOCJuJ-qbYSd8p1Y18kmkfMXCz8t7s6S9tlfu7OKVOXo_KNsAKK3Sh1_Af2Bs4q1F6yRw-FTX2j8fFC8nSTt9Qm7cCQJEqlwt9bjGQm2TITwNIHBzR4-G44UCp-0_csYhQFULCodO-iM1r0apaiFarIT_o0xzQ8F-Ex5ienUggc1LrdzHFfmUdi3M2FYLwoPzHRiLfATqJiidQJ-Yy95EhaYQdZy2y1RAU32wtHD8Rfyd14" />
+            </div>
+
+            <p className="text-slate-700 dark:text-white/80 text-sm leading-relaxed mt-2 transition-colors duration-500">
+              Sinergi Universitas Gadjah Mada & Kementerian Transmigrasi RI untuk Peningkatan Kapasitas SDM.
+            </p>
+          </div>
+
+          {/* Bagian Kanan: Link & Copyright */}
+          <div className="flex flex-col items-start lg:items-end lg:justify-start h-full gap-8 lg:gap-0 flex-1 w-full lg:w-auto">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8 text-left lg:text-right w-full lg:w-auto border-t border-slate-200 dark:border-white/10 lg:border-none pt-8 lg:pt-0 transition-colors duration-500">
+              <button onClick={() => scrollToSection('dashboard')} className="text-slate-700 hover:text-primary dark:text-white/80 dark:hover:text-white text-sm font-bold transition-colors text-left sm:text-center">Dashboard</button>
+              <button onClick={() => scrollToSection('materi-publik')} className="text-slate-700 hover:text-primary dark:text-white/80 dark:hover:text-white text-sm font-bold transition-colors text-left sm:text-center">Materi Publik</button>
+              <button onClick={() => scrollToSection('pengumuman')} className="text-slate-700 hover:text-primary dark:text-white/80 dark:hover:text-white text-sm font-bold transition-colors text-left sm:text-center">Pengumuman & Dokumen</button>
+              <button onClick={() => scrollToSection('kisah-inspiratif')} className="text-slate-700 hover:text-primary dark:text-white/80 dark:hover:text-white text-sm font-bold transition-colors text-left sm:text-center">Kisah Inspiratif</button>
+            </div>
+            
+            <div className="lg:absolute lg:bottom-0 lg:right-0 text-slate-500 dark:text-white/50 text-sm font-bold mt-8 lg:mt-0 w-full text-left lg:text-right transition-colors duration-500">
+              © Tim Ekspedisi Patriot UGM 2026
+            </div>
+          </div>
         </div>
       </footer>
 
