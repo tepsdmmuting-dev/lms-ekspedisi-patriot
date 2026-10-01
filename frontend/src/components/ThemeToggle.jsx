@@ -4,11 +4,10 @@ const ThemeToggle = ({ className = '' }) => {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Check local storage or system preference on mount
+    // Check local storage on mount (ignore system preference to default to light mode)
     const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    if (savedTheme === 'dark') {
       setIsDark(true);
       document.documentElement.classList.add('dark');
     } else {
