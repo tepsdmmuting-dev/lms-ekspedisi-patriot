@@ -142,17 +142,32 @@ const PublicDashboard = () => {
 
   const getModulesForTopic = (topic) => {
     if (!topic) return [];
+    const topicNameLower = topic.name.toLowerCase().trim();
+    const topicIdLower = topic.id.toLowerCase().trim();
+
     return allModules.filter(m => {
       // Kecualikan Kisah Inspiratif, Dokumen Resmi, dan Jadwal agar tidak tercampur ke kotak topik belajar
       if (m.category === 'Kisah Inspiratif' || m.category === 'Dokumen Resmi' || m.category === 'Jadwal') {
         return false;
       }
+
       const t = (m.topic || '').toLowerCase().trim();
-      const c = (m.category || '').toLowerCase().trim();
       const title = (m.title || '').toLowerCase().trim();
-      return topic.keywords.some(kw => 
-        t === kw || c === kw || t.includes(kw) || c.includes(kw) || title.includes(kw)
-      );
+
+      // 1. Jika modul sudah memiliki Topik (dari Admin), cocokkan secara presisi berdasarkan topik
+      if (t) {
+        return (
+          t === topicNameLower ||
+          t === topicIdLower ||
+          topic.keywords.some(kw => t === kw || t.includes(kw))
+        );
+      }
+
+      // 2. Fallback: hanya jika modul belum memiliki topik sama sekali, cocokkan kata utuh di judul (bukan sembarang substring)
+      return topic.keywords.some(kw => {
+        const regex = new RegExp(`(^|\\s|[^a-zA-Z0-9])${kw}($|\\s|[^a-zA-Z0-9])`, 'i');
+        return regex.test(title);
+      });
     });
   };
 
