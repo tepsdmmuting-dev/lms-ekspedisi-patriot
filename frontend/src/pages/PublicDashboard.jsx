@@ -281,6 +281,20 @@ const PublicDashboard = () => {
         <div className="hidden dark:block absolute top-[-20%] left-[-20%] w-[60%] h-[60%] rounded-full blur-3xl" style={{ background: 'radial-gradient(closest-side, rgba(250,204,21,0.15) 0%, rgba(250,204,21,0) 100%)' }}></div>
         <div className="hidden dark:block absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full blur-3xl" style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%)' }}></div>
         <div className="hidden dark:block absolute top-[30%] left-[50%] w-[50%] h-[50%] rounded-full blur-3xl" style={{ background: 'radial-gradient(closest-side, rgba(250,204,21,0.05) 0%, rgba(250,204,21,0) 100%)' }}></div>
+
+        {/* Aksen Batik Papua di Pojok Whitespace (Kiri & Kanan - Bebas dari Teks) */}
+        <div className="hidden sm:block absolute top-24 md:top-28 left-2 sm:left-4 lg:left-8 w-12 sm:w-16 lg:w-20 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.07] -rotate-12 transition-opacity" aria-hidden="true">
+          <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
+        </div>
+        <div className="hidden sm:block absolute top-28 md:top-32 right-2 sm:right-4 lg:right-8 w-12 sm:w-16 lg:w-20 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.07] rotate-12 transition-opacity" aria-hidden="true">
+          <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
+        </div>
+        <div className="hidden sm:block absolute bottom-16 left-3 sm:left-6 lg:left-8 w-10 sm:w-12 lg:w-14 pointer-events-none select-none opacity-[0.04] dark:opacity-[0.06] rotate-6 transition-opacity" aria-hidden="true">
+          <img src="/batik-papua-unit.png" alt="" className="w-full h-auto drop-shadow-sm" />
+        </div>
+        <div className="hidden sm:block absolute bottom-20 right-3 sm:right-6 lg:right-8 w-10 sm:w-12 lg:w-14 pointer-events-none select-none opacity-[0.04] dark:opacity-[0.06] -rotate-12 transition-opacity" aria-hidden="true">
+          <img src="/batik-papua-unit.png" alt="" className="w-full h-auto drop-shadow-sm" />
+        </div>
       </div>
 
       {/* TopNavBar - Floating Glass Pill */}
@@ -340,12 +354,8 @@ const PublicDashboard = () => {
       <main className="flex-grow pt-24 pb-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full z-10">
 
         {/* Hero Section */}
-        <section id="dashboard" className="relative min-h-[calc(100vh-6rem)] scroll-mt-24 mb-24 md:mb-32 flex flex-col md:flex-row items-center gap-12">
-          {/* Aksen Batik Papua Halus */}
-          <div className="absolute -top-10 -left-6 md:-left-12 w-20 md:w-28 pointer-events-none select-none opacity-[0.06] dark:opacity-[0.08] -rotate-12 transition-opacity z-0" aria-hidden="true">
-            <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
-          </div>
-          <div className="md:w-1/2 space-y-8 relative z-10">
+        <section id="dashboard" className="min-h-[calc(100vh-6rem)] scroll-mt-24 mb-24 md:mb-32 flex flex-col md:flex-row items-center gap-12">
+          <div className="md:w-1/2 space-y-8 relative">
             <div className="inline-block px-4 py-1.5 rounded-full bg-white/50 dark:bg-white/5 backdrop-blur-md border border-white dark:border-white/10 shadow-sm mb-2 transition-colors duration-500">
               <span className="text-sm font-bold tracking-widest text-primary dark:text-white uppercase">Kolaborasi UGM & Kementerian Transmigrasi</span>
             </div>
@@ -375,11 +385,7 @@ const PublicDashboard = () => {
 
         {/* Section: Mau Belajar Apa Hari Ini? (6 Materi Pilihan Beranda) */}
         <section id="pilihan-topik" className="relative mb-24 md:mb-32 scroll-mt-28">
-          {/* Aksen Batik Papua Halus */}
-          <div className="absolute -top-8 -right-4 md:-right-8 w-16 md:w-24 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.08] rotate-12 transition-opacity z-0" aria-hidden="true">
-            <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
-          </div>
-          <div className="mb-14 md:mb-20 relative z-10">
+          <div className="mb-14 md:mb-20">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-primary dark:text-white transition-colors duration-500">
               Mau Belajar Apa Hari Ini?
             </h2>
@@ -561,10 +567,6 @@ const PublicDashboard = () => {
 
         {/* Media Showcase Grid */}
         <section id="materi-publik" className="relative py-16 md:py-24 mb-8 md:mb-12 scroll-mt-32">
-          {/* Aksen Batik Papua Halus */}
-          <div className="absolute top-12 -left-4 md:-left-10 w-16 md:w-22 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.07] -rotate-6 transition-opacity z-0" aria-hidden="true">
-            <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
-          </div>
           {/* Full-width soft gradient background */}
           <div className="absolute -top-16 md:-top-24 -bottom-16 md:-bottom-24 w-[100vw] left-1/2 -translate-x-1/2 flex flex-col -z-10 pointer-events-none">
             <div className="h-24 md:h-32 bg-gradient-to-b from-[#FBBF24]/0 dark:from-slate-700/0 to-[#FBBF24]/[0.15] dark:to-slate-700/60 transition-colors duration-500"></div>
@@ -674,10 +676,6 @@ const PublicDashboard = () => {
 
         {/* Kisah Inspiratif Section */}
         <section id="kisah-inspiratif" className="relative min-h-[calc(100vh-6rem)] flex flex-col justify-center py-16 md:py-24 mb-12 scroll-mt-24">
-          {/* Aksen Batik Papua Halus */}
-          <div className="absolute top-10 -right-4 md:-right-8 w-16 md:w-22 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.08] rotate-6 transition-opacity z-0" aria-hidden="true">
-            <img src="/batik-papua-unit.png" alt="" className="w-full h-auto drop-shadow-sm" />
-          </div>
           {/* Full-width soft gradient background */}
           <div className="absolute -top-16 md:-top-24 -bottom-16 md:-bottom-24 w-[100vw] left-1/2 -translate-x-1/2 flex flex-col -z-10 pointer-events-none">
             <div className="h-24 md:h-32 bg-gradient-to-b from-[#FBBF24]/0 dark:from-slate-700/0 to-[#FBBF24]/[0.15] dark:to-slate-700/60 transition-colors duration-500"></div>
