@@ -340,8 +340,12 @@ const PublicDashboard = () => {
       <main className="flex-grow pt-24 pb-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full z-10">
 
         {/* Hero Section */}
-        <section id="dashboard" className="min-h-[calc(100vh-6rem)] scroll-mt-24 mb-24 md:mb-32 flex flex-col md:flex-row items-center gap-12">
-          <div className="md:w-1/2 space-y-8 relative">
+        <section id="dashboard" className="relative min-h-[calc(100vh-6rem)] scroll-mt-24 mb-24 md:mb-32 flex flex-col md:flex-row items-center gap-12">
+          {/* Aksen Batik Papua Halus */}
+          <div className="absolute -top-10 -left-6 md:-left-12 w-20 md:w-28 pointer-events-none select-none opacity-[0.06] dark:opacity-[0.08] -rotate-12 transition-opacity z-0" aria-hidden="true">
+            <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
+          </div>
+          <div className="md:w-1/2 space-y-8 relative z-10">
             <div className="inline-block px-4 py-1.5 rounded-full bg-white/50 dark:bg-white/5 backdrop-blur-md border border-white dark:border-white/10 shadow-sm mb-2 transition-colors duration-500">
               <span className="text-sm font-bold tracking-widest text-primary dark:text-white uppercase">Kolaborasi UGM & Kementerian Transmigrasi</span>
             </div>
@@ -371,7 +375,11 @@ const PublicDashboard = () => {
 
         {/* Section: Mau Belajar Apa Hari Ini? (6 Materi Pilihan Beranda) */}
         <section id="pilihan-topik" className="relative mb-24 md:mb-32 scroll-mt-28">
-          <div className="mb-14 md:mb-20">
+          {/* Aksen Batik Papua Halus */}
+          <div className="absolute -top-8 -right-4 md:-right-8 w-16 md:w-24 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.08] rotate-12 transition-opacity z-0" aria-hidden="true">
+            <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
+          </div>
+          <div className="mb-14 md:mb-20 relative z-10">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-primary dark:text-white transition-colors duration-500">
               Mau Belajar Apa Hari Ini?
             </h2>
@@ -553,6 +561,10 @@ const PublicDashboard = () => {
 
         {/* Media Showcase Grid */}
         <section id="materi-publik" className="relative py-16 md:py-24 mb-8 md:mb-12 scroll-mt-32">
+          {/* Aksen Batik Papua Halus */}
+          <div className="absolute top-12 -left-4 md:-left-10 w-16 md:w-22 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.07] -rotate-6 transition-opacity z-0" aria-hidden="true">
+            <img src="/batik-papua-motif.png" alt="" className="w-full h-auto drop-shadow-sm" />
+          </div>
           {/* Full-width soft gradient background */}
           <div className="absolute -top-16 md:-top-24 -bottom-16 md:-bottom-24 w-[100vw] left-1/2 -translate-x-1/2 flex flex-col -z-10 pointer-events-none">
             <div className="h-24 md:h-32 bg-gradient-to-b from-[#FBBF24]/0 dark:from-slate-700/0 to-[#FBBF24]/[0.15] dark:to-slate-700/60 transition-colors duration-500"></div>
@@ -662,6 +674,10 @@ const PublicDashboard = () => {
 
         {/* Kisah Inspiratif Section */}
         <section id="kisah-inspiratif" className="relative min-h-[calc(100vh-6rem)] flex flex-col justify-center py-16 md:py-24 mb-12 scroll-mt-24">
+          {/* Aksen Batik Papua Halus */}
+          <div className="absolute top-10 -right-4 md:-right-8 w-16 md:w-22 pointer-events-none select-none opacity-[0.05] dark:opacity-[0.08] rotate-6 transition-opacity z-0" aria-hidden="true">
+            <img src="/batik-papua-unit.png" alt="" className="w-full h-auto drop-shadow-sm" />
+          </div>
           {/* Full-width soft gradient background */}
           <div className="absolute -top-16 md:-top-24 -bottom-16 md:-bottom-24 w-[100vw] left-1/2 -translate-x-1/2 flex flex-col -z-10 pointer-events-none">
             <div className="h-24 md:h-32 bg-gradient-to-b from-[#FBBF24]/0 dark:from-slate-700/0 to-[#FBBF24]/[0.15] dark:to-slate-700/60 transition-colors duration-500"></div>
@@ -783,11 +799,11 @@ const PublicDashboard = () => {
       {previewModal && createPortal(
         <div className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all overflow-y-auto">
           <div className="w-full max-w-4xl flex flex-col gap-3 relative my-auto">
-            {/* Top Preview Banner with Countdown Bar */}
-            <div className="bg-amber-400 text-slate-950 dark:bg-yellow-400 dark:text-slate-950 rounded-2xl overflow-hidden shadow-xl">
+            {/* Top Preview Banner with Countdown Bar (Tema Biru UGM #004A74) */}
+            <div className="bg-[#004A74] text-white rounded-2xl overflow-hidden shadow-xl border border-sky-400/30">
               <div className="px-5 py-2.5 flex items-center justify-between font-bold text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg">timer</span>
+                  <span className="material-symbols-outlined text-lg text-sky-300">timer</span>
                   <span>
                     {previewEnded
                       ? '⏱️ Cuplikan Selesai (Batas 15 Detik)'
@@ -796,15 +812,16 @@ const PublicDashboard = () => {
                 </div>
                 <button
                   onClick={() => setPreviewModal(null)}
-                  className="w-7 h-7 bg-black/10 hover:bg-black/20 rounded-full flex items-center justify-center transition-colors"
+                  title="Tutup"
+                  className="w-7 h-7 bg-white/15 hover:bg-white/25 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
               {/* Animated Progress Bar */}
-              <div className="w-full bg-black/10 h-1">
+              <div className="w-full bg-black/25 h-1">
                 <div
-                  className="bg-slate-950 h-full transition-all duration-1000 ease-linear"
+                  className="bg-sky-400 h-full transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(56,189,248,0.8)]"
                   style={{ width: `${(previewTimeLeft / 15) * 100}%` }}
                 ></div>
               </div>
@@ -824,10 +841,10 @@ const PublicDashboard = () => {
               {/* 15-Second Limit Overlay when time is up */}
               {previewEnded && (
                 <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-30 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-400/20 text-amber-400 flex items-center justify-center mb-4 shadow-lg border border-amber-400/30">
+                  <div className="w-16 h-16 rounded-2xl bg-[#004A74]/30 text-sky-400 flex items-center justify-center mb-4 shadow-lg border border-sky-400/30">
                     <span className="material-symbols-outlined text-4xl">timer</span>
                   </div>
-                  <span className="bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full mb-3 shadow">
+                  <span className="bg-[#004A74] text-white text-xs font-bold uppercase tracking-wider px-3.5 py-1 rounded-full mb-3 shadow border border-sky-400/30">
                     Cuplikan 15 Detik Selesai
                   </span>
                   <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Ingin Nonton Video Lengkap?</h3>
@@ -851,7 +868,7 @@ const PublicDashboard = () => {
                         setPreviewModal(null);
                         navigate('/login');
                       }}
-                      className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-6 py-2.5 rounded-xl font-black text-xs sm:text-sm shadow-xl transition-all flex items-center gap-1.5 hover:scale-105"
+                      className="bg-[#004A74] hover:bg-[#003857] text-white px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-xl transition-all border border-sky-400/40 flex items-center gap-1.5 hover:scale-105"
                     >
                       <span>Masuk untuk Nonton Lengkap</span>
                       <span className="material-symbols-outlined text-base">login</span>
@@ -864,7 +881,7 @@ const PublicDashboard = () => {
             {/* Details & Action Bar */}
             <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl p-5 md:p-6 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left">
               <div className="max-w-xl">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 dark:text-yellow-400 mb-1 inline-block">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-400 dark:text-sky-300 mb-1 inline-block">
                   Topik: {previewModal.topic || previewModal.category || 'Materi Pembelajaran'}
                 </span>
                 <h3 className="text-lg md:text-xl font-bold text-white mb-1.5 leading-snug">{previewModal.title}</h3>
@@ -882,7 +899,7 @@ const PublicDashboard = () => {
                     setPreviewModal(null);
                     navigate('/login');
                   }}
-                  className="flex-1 md:flex-initial bg-amber-400 hover:bg-amber-300 dark:bg-yellow-500 dark:hover:bg-yellow-400 text-slate-950 px-5 py-2.5 rounded-xl text-xs md:text-sm font-black transition-all shadow-lg flex items-center justify-center gap-1.5"
+                  className="flex-1 md:flex-initial bg-[#004A74] hover:bg-[#003857] text-white px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all shadow-lg border border-sky-400/30 flex items-center justify-center gap-1.5 hover:scale-105"
                 >
                   <span>Materi Penuh</span>
                   <span className="material-symbols-outlined text-sm">login</span>
