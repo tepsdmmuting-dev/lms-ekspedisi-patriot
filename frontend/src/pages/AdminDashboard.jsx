@@ -12,8 +12,16 @@ const AdminDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [stats, setStats] = useState({ totalActiveLinks: 0, retentionRate: 0, regions: [] });
+  const DEFAULT_TOPICS = [
+    'IT',
+    'Kewirausahaan',
+    'Kesehatan',
+    'Bhineka Tunggal Ika',
+    'Keuangan',
+    'Karir Masa Depan'
+  ];
   const [modules, setModules] = useState([]);
-  const [allTopics, setAllTopics] = useState([]);
+  const [allTopics, setAllTopics] = useState(DEFAULT_TOPICS);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [quizModule, setQuizModule] = useState(null);
   
@@ -67,7 +75,10 @@ const AdminDashboard = () => {
         const res = await fetch('/api/modules/topics', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.ok) setAllTopics(await res.json());
+        if (res.ok) {
+          const data = await res.json();
+          setAllTopics(Array.from(new Set([...DEFAULT_TOPICS, ...data])));
+        }
       } catch (err) { console.error(err); }
     };
     fetchModules();
@@ -345,7 +356,7 @@ const AdminDashboard = () => {
                             <input required type="text" placeholder="Masukkan judul materi" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all" />
                         </div>
                         <div>
-                            <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Topic / Mata Pelajaran</label>
+                            <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Topic / Mata Pelajaran (Beranda & Modul)</label>
                             <div className="flex gap-2">
                               <select
                                 value={allTopics.includes(formData.topic) ? formData.topic : (formData.topic ? '__custom__' : '')}
@@ -356,7 +367,16 @@ const AdminDashboard = () => {
                                 className="flex-1 px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-white/50 dark:border-slate-700/50 shadow-inner text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all appearance-none"
                               >
                                 <option value="" disabled hidden>Pilih Topik...</option>
-                                {allTopics.map(t => <option key={t} value={t}>{t}</option>)}
+                                <optgroup label="6 Materi Pilihan Beranda">
+                                  {DEFAULT_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
+                                </optgroup>
+                                {allTopics.filter(t => !DEFAULT_TOPICS.includes(t)).length > 0 && (
+                                  <optgroup label="Topik Lainnya">
+                                    {allTopics.filter(t => !DEFAULT_TOPICS.includes(t)).map(t => (
+                                      <option key={t} value={t}>{t}</option>
+                                    ))}
+                                  </optgroup>
+                                )}
                                 <option value="__custom__">+ Tambah Topik Baru...</option>
                               </select>
                             </div>

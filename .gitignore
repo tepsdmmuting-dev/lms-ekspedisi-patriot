@@ -15,3 +15,5 @@ admin_dashboard_ekspedisi_patriot/
 member_dashboard_ekspedisi_patriot/
 patriot_industrial_lms/
 public_dashboard_ekspedisi_patriot/
+supabase_dump.sql
+setup_*.py
