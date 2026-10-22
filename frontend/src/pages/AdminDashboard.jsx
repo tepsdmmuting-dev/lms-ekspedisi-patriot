@@ -366,7 +366,7 @@ const AdminDashboard = () => {
                                 }}
                                 className="flex-1 px-4 py-3 bg-white/50 dark:bg-slate-900/50 border border-white/50 dark:border-slate-700/50 shadow-inner text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all appearance-none"
                               >
-                                <option value="" disabled hidden>Pilih Topik...</option>
+                                <option value="">-- Tanpa Topik / Umum (Kosongkan) --</option>
                                 <optgroup label="6 Materi Pilihan Beranda">
                                   {DEFAULT_TOPICS.map(t => <option key={t} value={t}>{t}</option>)}
                                 </optgroup>
@@ -380,12 +380,17 @@ const AdminDashboard = () => {
                                 <option value="__custom__">+ Tambah Topik Baru...</option>
                               </select>
                             </div>
+                            {formData.category === 'Kisah Inspiratif' && (
+                              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                                💡 Info: Kisah Inspiratif memiliki seksi tersendiri di beranda. Pilih "-- Tanpa Topik --" agar tidak masuk ke 6 kotak materi belajar.
+                              </p>
+                            )}
                             <input
                               type="text"
                               value={formData.topic}
                               onChange={e => setFormData({...formData, topic: e.target.value})}
                               className="w-full mt-3 px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all"
-                              placeholder="Ketik nama topik baru atau edit topik yang dipilih"
+                              placeholder="Ketik nama topik baru atau biarkan kosong"
                             />
                         </div>
                     </div>

@@ -143,6 +143,10 @@ const PublicDashboard = () => {
   const getModulesForTopic = (topic) => {
     if (!topic) return [];
     return allModules.filter(m => {
+      // Kecualikan Kisah Inspiratif, Dokumen Resmi, dan Jadwal agar tidak tercampur ke kotak topik belajar
+      if (m.category === 'Kisah Inspiratif' || m.category === 'Dokumen Resmi' || m.category === 'Jadwal') {
+        return false;
+      }
       const t = (m.topic || '').toLowerCase().trim();
       const c = (m.category || '').toLowerCase().trim();
       const title = (m.title || '').toLowerCase().trim();
