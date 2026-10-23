@@ -180,9 +180,16 @@ const PublicDashboard = () => {
       setSelectedTopic(null);
     } else {
       setSelectedTopic(topicId);
+      // Hanya scroll jika bagian kartu terpotong di luar viewport setelah animasi berlangsung mulus
       setTimeout(() => {
-        document.getElementById(`topic-card-${topicId}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
+        const el = document.getElementById(`topic-card-${topicId}`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < 80 || rect.bottom > window.innerHeight) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      }, 350);
     }
   };
 
@@ -413,165 +420,234 @@ const PublicDashboard = () => {
               const matchedModules = getModulesForTopic(topic);
               const matchedCount = matchedModules.length;
 
-              if (isSelected) {
-                return (
-                  <div
-                    key={topic.id}
-                    id={`topic-card-${topic.id}`}
-                    className="relative rounded-3xl overflow-hidden transition-all duration-500 flex flex-col border border-white/80 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl shadow-[0_16px_45px_rgba(0,0,0,0.08)] dark:shadow-[0_16px_45px_rgba(0,0,0,0.4)] -translate-y-1"
-                  >
-                    {/* Header: Banner Background Foto Awal Topik dengan Warna Kisah Inspiratif */}
-                    <div className="relative h-28 sm:h-32 m-3 mb-2 rounded-2xl overflow-hidden flex flex-col justify-between p-4 shadow-sm group">
-                      {/* Foto Awal Topik */}
-                      <div
-                        className="absolute inset-0 bg-cover bg-center w-full h-full transition-all duration-700 group-hover:scale-105"
-                        style={{ backgroundImage: `url('${topic.image}')` }}
-                      ></div>
-
-                      {/* Overlay Warna Kisah Inspiratif: Biru UGM di Light Mode (#004A74), Kuning Emas Lembut di Dark Mode (#D4B856) */}
-                      <div className="absolute inset-0 bg-[#004A74]/85 dark:bg-[#D4B856]/90 transition-colors duration-500 z-10 pointer-events-none"></div>
-
-                      {/* Baris Atas: Ikon Topik & Tombol Tutup */}
-                      <div className="relative z-20 flex items-center justify-between">
-                        <div className="w-9 h-9 rounded-xl bg-white/20 dark:bg-slate-950/20 backdrop-blur-md flex items-center justify-center text-white dark:text-slate-950 border border-white/30 dark:border-slate-950/20 shadow-sm">
-                          <span className="material-symbols-outlined text-xl">{topic.icon}</span>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTopic(null);
-                          }}
-                          title="Tutup"
-                          aria-label="Tutup"
-                          className="w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 text-white dark:bg-slate-950/20 dark:hover:bg-slate-950/35 dark:text-slate-950 flex items-center justify-center transition-all border border-white/20 dark:border-slate-950/20 backdrop-blur-md shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-base leading-none">close</span>
-                        </button>
-                      </div>
-
-                      {/* Judul Topik Saja */}
-                      <div className="relative z-20 text-left">
-                        <h3 className="text-xl sm:text-2xl font-bold text-white dark:text-slate-950 leading-tight drop-shadow-sm">
-                          {topic.name}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* Body: Daftar Materi (Foto Jadi Background Blur di Bawah Judul) */}
-                    <div className="p-3 pt-1 flex flex-col gap-2.5 max-h-[340px] overflow-y-auto">
-                      {matchedModules.length > 0 ? (
-                        matchedModules.map((mod) => (
-                          <div
-                            key={mod.id}
-                            onClick={() => handlePreviewClick(mod)}
-                            className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-[#004A74] dark:hover:border-[#D4B856] shadow-sm transition-all duration-300 cursor-pointer group/item"
-                          >
-                            {/* Background Foto Blur jika ada gambar yang di-upload */}
-                            {mod.image_url ? (
-                              <>
-                                <div
-                                  className="absolute inset-0 bg-cover bg-center w-full h-full filter blur-[5px] scale-125 opacity-40 dark:opacity-30 group-hover/item:scale-135 transition-transform duration-500"
-                                  style={{ backgroundImage: `url('${mod.image_url}')` }}
-                                ></div>
-                                <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
-                              </>
-                            ) : (
-                              <div className="absolute inset-0 bg-slate-50 dark:bg-slate-800/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
-                            )}
-
-                            {/* Konten di atas Background Blur: Judul & Tombol Play */}
-                            <div className="relative z-20 px-4 py-3 flex items-center justify-between gap-3 text-slate-800 dark:text-white group-hover/item:text-white dark:group-hover/item:text-slate-950 transition-colors duration-200">
-                              <div className="flex items-center gap-3 min-w-0 flex-grow text-left">
-                                <div className="w-8 h-8 rounded-full bg-[#004A74]/10 dark:bg-white/10 group-hover/item:bg-white/20 dark:group-hover/item:bg-slate-950/20 text-[#004A74] dark:text-[#D4B856] group-hover/item:text-white dark:group-hover/item:text-slate-950 flex items-center justify-center shrink-0 shadow-sm transition-colors">
-                                  <span className="material-symbols-outlined text-lg filled">play_arrow</span>
-                                </div>
-                                <span className="text-sm sm:text-base font-bold truncate">
-                                  {mod.title}
-                                </span>
-                              </div>
-
-                              <div className="shrink-0 flex items-center gap-1 text-xs font-bold opacity-75 group-hover/item:opacity-100 transition-opacity">
-                                <span className="text-[11px]">15s</span>
-                                <span className="material-symbols-outlined text-base">arrow_forward</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="py-6 px-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center">
-                          <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-yellow-400 mb-1">pending</span>
-                          <p className="text-xs font-bold text-slate-700 dark:text-white">Materi Segera Hadir</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer Kartu saat Ter-expand */}
-                    <div className="px-5 py-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedTopic(null);
-                        }}
-                        className="hover:text-[#004A74] dark:hover:text-[#D4B856] flex items-center gap-1 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                        <span>Tutup</span>
-                      </button>
-                      <button
-                        onClick={() => navigate('/login')}
-                        className="text-[#004A74] dark:text-[#D4B856] hover:underline flex items-center gap-1"
-                      >
-                        <span>Materi Penuh</span>
-                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              // Kartu Default (Belum Ter-expand)
               return (
                 <div
                   key={topic.id}
                   id={`topic-card-${topic.id}`}
-                  onClick={() => handleTopicClick(topic.id)}
-                  className="relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 flex flex-col group aspect-[16/11] sm:aspect-[4/3] hover:-translate-y-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_20px_45px_rgba(0,74,116,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_20px_45px_rgba(212,184,86,0.3)] border border-white/80 hover:border-[#004A74]/40 dark:border-white/10 dark:hover:border-[#D4B856]/50 bg-white dark:bg-slate-900"
+                  onClick={() => {
+                    if (!isSelected) {
+                      handleTopicClick(topic.id);
+                    }
+                  }}
+                  className={`relative rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col border border-white/80 dark:border-white/10 backdrop-blur-2xl ${
+                    isSelected
+                      ? 'bg-white/95 dark:bg-slate-900/95 shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] -translate-y-1'
+                      : 'bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_20px_45px_rgba(0,74,116,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_20px_45px_rgba(212,184,86,0.3)] hover:-translate-y-1.5 cursor-pointer group'
+                  }`}
                 >
-                  {/* Background Photo */}
+                  {/* Top Header / Banner Area (Transisi Mulus Tanpa Pergeseran Margin/Padding) */}
                   <div
-                    className="absolute inset-0 bg-cover bg-center w-full h-full group-hover:scale-110 transition-transform duration-700 z-0"
-                    style={{ backgroundImage: `url('${topic.image}')` }}
-                  ></div>
+                    className={`relative overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col justify-between p-5 md:p-6 ${
+                      isSelected ? 'h-36 sm:h-40' : 'h-60 sm:h-64'
+                    }`}
+                  >
+                    {/* Background Photo */}
+                    <div
+                      className={`absolute inset-0 bg-cover bg-center w-full h-full transition-transform duration-700 z-0 ${
+                        isSelected ? 'scale-105' : 'group-hover:scale-110'
+                      }`}
+                      style={{ backgroundImage: `url('${topic.image}')` }}
+                    ></div>
 
-                  {/* Overlay: Filter ditipiskan agar foto background terlihat lebih jelas dan tebal */}
-                  <div className="absolute inset-0 transition-all duration-500 z-10 pointer-events-none bg-gradient-to-t from-white/80 via-white/35 to-white/15 dark:from-slate-950/85 dark:via-slate-900/40 dark:to-slate-900/20 group-hover:bg-[#004A74]/90 dark:group-hover:bg-[#D4B856]/90"></div>
+                    {/* Overlay: Default Filter (Tipis & Elegan) */}
+                    <div
+                      className={`absolute inset-0 transition-opacity duration-500 z-10 pointer-events-none bg-gradient-to-t from-white/80 via-white/35 to-white/15 dark:from-slate-950/85 dark:via-slate-900/40 dark:to-slate-900/20 group-hover:bg-[#004A74]/90 dark:group-hover:bg-[#D4B856]/90 ${
+                        isSelected ? 'opacity-0' : 'opacity-100'
+                      }`}
+                    ></div>
 
-                  {/* Top-Left Frosted Glass Icon Badge */}
-                  <div className="absolute top-4 left-4 md:top-5 md:left-5 z-20 w-12 h-12 md:w-14 md:h-14 bg-white/90 dark:bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white dark:group-hover:bg-slate-900 transition-all duration-500 shadow-md border border-white/60 dark:border-white/10">
-                    <span className="material-symbols-outlined text-[#004A74] dark:text-yellow-400 group-hover:text-[#004A74] dark:group-hover:text-[#D4B856] text-2xl md:text-3xl transition-colors duration-500">
-                      {topic.icon}
-                    </span>
+                    {/* Overlay: Expanded Mode (Warna Kisah Inspiratif) */}
+                    <div
+                      className={`absolute inset-0 transition-opacity duration-500 z-10 pointer-events-none bg-[#004A74]/85 dark:bg-[#D4B856]/90 ${
+                        isSelected ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    ></div>
+
+                    {/* Baris Atas: Ikon Topik & Kontrol Kanan */}
+                    <div className="relative z-20 flex items-center justify-between">
+                      {/* Ikon Badge (Ukuran Stabil, Warna Bertransisi Halus) */}
+                      <div
+                        className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ease-out backdrop-blur-xl border ${
+                          isSelected
+                            ? 'bg-white/20 dark:bg-slate-950/20 text-white dark:text-slate-950 border-white/30 dark:border-slate-950/20 shadow-sm'
+                            : 'bg-white/90 dark:bg-white/10 text-[#004A74] dark:text-yellow-400 group-hover:text-white dark:group-hover:text-slate-950 group-hover:bg-white dark:group-hover:bg-slate-900 border-white/60 dark:border-white/10 shadow-md group-hover:scale-105'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-2xl md:text-3xl transition-colors duration-500">
+                          {topic.icon}
+                        </span>
+                      </div>
+
+                      {/* Kontrol Kanan Atas: Badge Jumlah Materi & Tombol Morphing */}
+                      <div className="flex items-center gap-2">
+                        {/* Pill Jumlah Materi */}
+                        <div
+                          className={`backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold border shadow-sm transition-all duration-500 ${
+                            isSelected
+                              ? 'bg-white/20 dark:bg-slate-950/20 text-white dark:text-slate-950 border-white/30 dark:border-slate-950/20'
+                              : 'bg-white/80 dark:bg-black/40 text-slate-700 dark:text-slate-300 border-white/60 dark:border-white/10'
+                          }`}
+                        >
+                          {matchedCount > 0 ? `${matchedCount} Materi` : 'Segera Hadir'}
+                        </div>
+
+                        {/* Tombol Aksi Morphing (Rotasi Mulus & Cross-fade antara expand_more dan close) */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTopic(isSelected ? null : topic.id);
+                          }}
+                          title={isSelected ? "Tutup materi" : "Buka materi"}
+                          aria-label={isSelected ? "Tutup materi" : "Buka materi"}
+                          className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 backdrop-blur-md shadow-sm border cursor-pointer ${
+                            isSelected
+                              ? 'bg-black/25 hover:bg-black/40 text-white dark:bg-slate-950/25 dark:hover:bg-slate-950/40 dark:text-slate-950 border-white/30 dark:border-slate-950/20 rotate-90 scale-100'
+                              : 'bg-white/80 hover:bg-white text-slate-700 dark:bg-black/40 dark:hover:bg-black/60 dark:text-white border-white/60 dark:border-white/10 rotate-0 scale-95 group-hover:scale-105'
+                          }`}
+                        >
+                          {/* Chevron Icon (terlihat saat collapsed, berputar & fade out saat expanded) */}
+                          <span
+                            className={`material-symbols-outlined text-base leading-none absolute transition-all duration-500 ${
+                              isSelected ? 'opacity-0 rotate-180 scale-50' : 'opacity-100 rotate-0 scale-100'
+                            }`}
+                          >
+                            expand_more
+                          </span>
+
+                          {/* Close 'X' Icon (berputar & fade in saat expanded, tersembunyi saat collapsed) */}
+                          <span
+                            className={`material-symbols-outlined text-base leading-none absolute transition-all duration-500 ${
+                              isSelected ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'
+                            }`}
+                          >
+                            close
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Area Bawah Banner: Subtitle, Judul, & Buka Cuplikan */}
+                    <div className="relative z-20 text-left transition-all duration-500">
+                      {/* Subtitle (sembunyi mulus saat ter-expand) */}
+                      <div
+                        className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                          isSelected ? 'max-h-0 opacity-0 mb-0' : 'max-h-6 opacity-100 mb-1'
+                        }`}
+                      >
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 group-hover:text-white/80 dark:group-hover:text-slate-800 transition-colors drop-shadow-sm">
+                          {topic.subtitle}
+                        </span>
+                      </div>
+
+                      {/* Judul Topik */}
+                      <h3
+                        className={`font-bold leading-tight transition-all duration-500 drop-shadow-sm ${
+                          isSelected
+                            ? 'text-xl sm:text-2xl text-white dark:text-slate-950 mb-0'
+                            : 'text-xl sm:text-2xl text-slate-900 dark:text-white group-hover:text-white dark:group-hover:text-slate-950 mb-2'
+                        }`}
+                      >
+                        {topic.name}
+                      </h3>
+
+                      {/* Action Buka Cuplikan (sembunyi mulus saat ter-expand) */}
+                      <div
+                        className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                          isSelected ? 'max-h-0 opacity-0 pt-0' : 'max-h-8 opacity-100 pt-1'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-white/90 dark:group-hover:text-slate-900 transition-colors">
+                          <span>Buka Cuplikan</span>
+                          <span className="inline-flex items-center gap-1 font-bold group-hover:translate-x-1 transition-transform">
+                            <span>Lihat</span>
+                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Top-Right Pill: Jumlah Materi */}
-                  <div className="absolute top-4 right-4 md:top-5 md:right-5 z-20 bg-white/80 dark:bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-semibold text-slate-700 dark:text-slate-300 border border-white/60 dark:border-white/10 shadow-sm">
-                    {matchedCount > 0 ? `${matchedCount} Materi` : 'Segera Hadir'}
-                  </div>
+                  {/* Body Expandable: Accordion Turun ke Bawah Secara Mulus (Native CSS Grid Transition) */}
+                  <div className={`accordion-grid ${isSelected ? 'accordion-grid-open' : 'accordion-grid-closed'}`}>
+                    <div className="accordion-content">
+                      {/* Garis Pembatas Halus */}
+                      <div className="border-t border-slate-200/60 dark:border-white/10 mx-5"></div>
 
-                  {/* Bottom Content Area */}
-                  <div className="relative z-20 p-5 md:p-6 mt-auto flex flex-col justify-end text-left">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 group-hover:text-white/80 dark:group-hover:text-slate-800 transition-colors mb-1 drop-shadow-sm">
-                      {topic.subtitle}
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white group-hover:text-white dark:group-hover:text-slate-950 leading-tight mb-2 transition-colors duration-500 drop-shadow-sm">
-                      {topic.name}
-                    </h3>
-                    <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-white/90 dark:group-hover:text-slate-900 transition-colors">
-                      <span>Buka Cuplikan</span>
-                      <span className="inline-flex items-center gap-0.5 font-bold group-hover:translate-x-1 transition-transform">
-                        <span>Lihat</span>
-                        <span className="material-symbols-outlined text-sm">expand_more</span>
-                      </span>
+                      {/* Daftar Materi yang Meluncur Turun Bersama */}
+                      <div
+                        className={`p-4 pt-3 flex flex-col gap-2.5 max-h-[340px] overflow-y-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                          isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
+                        }`}
+                      >
+                        {matchedModules.length > 0 ? (
+                          matchedModules.map((mod) => (
+                            <div
+                              key={mod.id}
+                              onClick={() => handlePreviewClick(mod)}
+                              className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-[#004A74] dark:hover:border-[#D4B856] shadow-sm transition-all duration-300 cursor-pointer group/item hover:-translate-y-0.5 hover:shadow-md"
+                            >
+                              {/* Background Foto Blur jika ada gambar yang di-upload */}
+                              {mod.image_url ? (
+                                <>
+                                  <div
+                                    className="absolute inset-0 bg-cover bg-center w-full h-full filter blur-[5px] scale-125 opacity-40 dark:opacity-30 group-hover/item:scale-135 transition-transform duration-500"
+                                    style={{ backgroundImage: `url('${mod.image_url}')` }}
+                                  ></div>
+                                  <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
+                                </>
+                              ) : (
+                                <div className="absolute inset-0 bg-slate-50 dark:bg-slate-800/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
+                              )}
+
+                              {/* Konten di atas Background Blur: Judul & Tombol Play */}
+                              <div className="relative z-20 px-4 py-3 flex items-center justify-between gap-3 text-slate-800 dark:text-white group-hover/item:text-white dark:group-hover/item:text-slate-950 transition-colors duration-200">
+                                <div className="flex items-center gap-3 min-w-0 flex-grow text-left">
+                                  <div className="w-8 h-8 rounded-full bg-[#004A74]/10 dark:bg-white/10 group-hover/item:bg-white/20 dark:group-hover/item:bg-slate-950/20 text-[#004A74] dark:text-[#D4B856] group-hover/item:text-white dark:group-hover/item:text-slate-950 flex items-center justify-center shrink-0 shadow-sm transition-colors">
+                                    <span className="material-symbols-outlined text-lg filled">play_arrow</span>
+                                  </div>
+                                  <span className="text-sm sm:text-base font-bold truncate">
+                                    {mod.title}
+                                  </span>
+                                </div>
+
+                                <div className="shrink-0 flex items-center gap-1 text-xs font-bold opacity-75 group-hover/item:opacity-100 transition-opacity">
+                                  <span className="text-[11px]">15s</span>
+                                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-6 px-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center">
+                            <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-yellow-400 mb-1">pending</span>
+                            <p className="text-xs font-bold text-slate-700 dark:text-white">Materi Segera Hadir</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Footer Kartu saat Ter-expand */}
+                      <div className="px-5 py-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTopic(null);
+                          }}
+                          className="hover:text-[#004A74] dark:hover:text-[#D4B856] flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-sm">close</span>
+                          <span>Tutup</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate('/login')}
+                          className="text-[#004A74] dark:text-[#D4B856] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Materi Penuh</span>
+                          <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

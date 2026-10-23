@@ -29,4 +29,24 @@
     border-color: #000a1e; /* primary */
     transform: translateY(-2px);
   }
+
+  /* Smooth Accordion Grid Animation */
+  .accordion-grid {
+    display: grid;
+    transition: grid-template-rows 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .accordion-grid-open {
+    grid-template-rows: 1fr;
+  }
+
+  .accordion-grid-closed {
+    grid-template-rows: 0fr;
+  }
+
+  .accordion-content {
+    overflow: hidden;
+    min-height: 0;
+  }
 }
+
