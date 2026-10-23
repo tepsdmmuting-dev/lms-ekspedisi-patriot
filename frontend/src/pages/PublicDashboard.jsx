@@ -543,8 +543,8 @@ const PublicDashboard = () => {
                     style={{ backgroundImage: `url('${topic.image}')` }}
                   ></div>
 
-                  {/* Overlay: Default Putih (Light Mode) / Gelap (Dark Mode), Saat di-hover berubah sesuai warna Kisah Inspiratif */}
-                  <div className="absolute inset-0 transition-all duration-500 z-10 pointer-events-none bg-white/85 dark:bg-slate-900/85 backdrop-blur-[2px] group-hover:bg-[#004A74]/90 dark:group-hover:bg-[#D4B856]/90"></div>
+                  {/* Overlay: Filter ditipiskan agar foto background terlihat lebih jelas dan tebal */}
+                  <div className="absolute inset-0 transition-all duration-500 z-10 pointer-events-none bg-gradient-to-t from-white/80 via-white/35 to-white/15 dark:from-slate-950/85 dark:via-slate-900/40 dark:to-slate-900/20 group-hover:bg-[#004A74]/90 dark:group-hover:bg-[#D4B856]/90"></div>
 
                   {/* Top-Left Frosted Glass Icon Badge */}
                   <div className="absolute top-4 left-4 md:top-5 md:left-5 z-20 w-12 h-12 md:w-14 md:h-14 bg-white/90 dark:bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white dark:group-hover:bg-slate-900 transition-all duration-500 shadow-md border border-white/60 dark:border-white/10">
@@ -560,13 +560,13 @@ const PublicDashboard = () => {
 
                   {/* Bottom Content Area */}
                   <div className="relative z-20 p-5 md:p-6 mt-auto flex flex-col justify-end text-left">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-hover:text-white/80 dark:group-hover:text-slate-800 transition-colors mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 group-hover:text-white/80 dark:group-hover:text-slate-800 transition-colors mb-1 drop-shadow-sm">
                       {topic.subtitle}
                     </span>
-                    <h3 className="text-xl sm:text-2xl font-bold text-primary dark:text-white group-hover:text-white dark:group-hover:text-slate-950 leading-tight mb-2 transition-colors duration-500 drop-shadow-sm">
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white group-hover:text-white dark:group-hover:text-slate-950 leading-tight mb-2 transition-colors duration-500 drop-shadow-sm">
                       {topic.name}
                     </h3>
-                    <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 group-hover:text-white/90 dark:group-hover:text-slate-900 transition-colors">
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 group-hover:text-white/90 dark:group-hover:text-slate-900 transition-colors">
                       <span>Buka Cuplikan</span>
                       <span className="inline-flex items-center gap-0.5 font-bold group-hover:translate-x-1 transition-transform">
                         <span>Lihat</span>
