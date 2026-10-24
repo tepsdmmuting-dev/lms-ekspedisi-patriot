@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
@@ -76,12 +76,6 @@ const PublicDashboard = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [playingVideo, setPlayingVideo] = useState(null);
   const [siteSettings, setSiteSettings] = useState({});
-
-  // Carousel State & Ref untuk Pilihan Topik (Maksimal 3 tampil sekaligus)
-  const topicCarouselRef = useRef(null);
-  const [activeTopicIndex, setActiveTopicIndex] = useState(0);
-  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
-  const [isAutoScrollActive, setIsAutoScrollActive] = useState(true);
 
   const getEmbedUrl = (url, isPreview = false) => {
     if (!url) return '';
@@ -186,85 +180,17 @@ const PublicDashboard = () => {
       setSelectedTopic(null);
     } else {
       setSelectedTopic(topicId);
-      // Pusatkan kartu yang dipilih di dalam carousel agar tampak jelas dan fokus
+      // Hanya scroll jika bagian kartu terpotong di luar viewport setelah animasi berlangsung mulus
       setTimeout(() => {
         const el = document.getElementById(`topic-card-${topicId}`);
-        if (el && topicCarouselRef.current) {
-          const container = topicCarouselRef.current;
-          const cardOffset = el.offsetLeft - container.offsetLeft;
-          const targetScroll = cardOffset - (container.clientWidth / 2) + (el.clientWidth / 2);
-          container.scrollTo({ left: Math.max(0, targetScroll), behavior: 'smooth' });
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < 80 || rect.bottom > window.innerHeight) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         }
-      }, 150);
+      }, 350);
     }
-  };
-
-  // Auto-scroll untuk Carousel Topik Pilihan (Maksimal 3 tampil sekaligus di desktop)
-  useEffect(() => {
-    // Otomatis berhenti jika user menonaktifkan auto-scroll, kursor sedang hover, atau kartu sedang dibuka
-    if (!isAutoScrollActive || isCarouselHovered || selectedTopic !== null) return;
-
-    const interval = setInterval(() => {
-      if (!topicCarouselRef.current) return;
-      const container = topicCarouselRef.current;
-      const card = container.firstElementChild;
-      if (!card) return;
-
-      const cardWidth = card.clientWidth;
-      const gap = 24; // gap-6
-      const scrollStep = cardWidth + gap;
-
-      // Wrap ke awal jika sudah di ujung kanan
-      if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 30) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        container.scrollBy({ left: scrollStep, behavior: 'smooth' });
-      }
-    }, 4500);
-
-    return () => clearInterval(interval);
-  }, [isAutoScrollActive, isCarouselHovered, selectedTopic]);
-
-  const handleCarouselScroll = () => {
-    if (!topicCarouselRef.current) return;
-    const container = topicCarouselRef.current;
-    const card = container.firstElementChild;
-    if (!card) return;
-    const cardWidth = card.clientWidth + 24;
-    const currentIndex = Math.round(container.scrollLeft / cardWidth);
-    setActiveTopicIndex(Math.min(Math.max(0, currentIndex), TOPICS_LIST.length - 1));
-  };
-
-  const scrollCarousel = (direction) => {
-    if (!topicCarouselRef.current) return;
-    const container = topicCarouselRef.current;
-    const card = container.firstElementChild;
-    if (!card) return;
-    const cardWidth = card.clientWidth + 24;
-
-    if (direction === 'left') {
-      if (container.scrollLeft <= 10) {
-        container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
-      } else {
-        container.scrollBy({ left: -cardWidth, behavior: 'smooth' });
-      }
-    } else {
-      if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 30) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        container.scrollBy({ left: cardWidth, behavior: 'smooth' });
-      }
-    }
-  };
-
-  const scrollToTopicIndex = (index) => {
-    if (!topicCarouselRef.current) return;
-    const container = topicCarouselRef.current;
-    const card = container.firstElementChild;
-    if (!card) return;
-    const cardWidth = card.clientWidth + 24;
-    container.scrollTo({ left: index * cardWidth, behavior: 'smooth' });
-    setActiveTopicIndex(index);
   };
 
   const handlePreviewClick = (mod) => {
@@ -479,66 +405,16 @@ const PublicDashboard = () => {
           </div>
         </section>
 
-        {/* Section: Mau Belajar Apa Hari Ini? (Carousel Maks. 3 Topik & Auto-Scroll) */}
+        {/* Section: Mau Belajar Apa Hari Ini? (6 Materi Pilihan Beranda) */}
         <section id="pilihan-topik" className="relative mb-24 md:mb-32 scroll-mt-28">
-          <div className="mb-8 md:mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#004A74]/10 dark:bg-yellow-400/10 text-[#004A74] dark:text-yellow-400 mb-2 border border-[#004A74]/20 dark:border-yellow-400/20">
-                <span className="material-symbols-outlined text-sm">auto_stories</span>
-                <span>Materi Pilihan Komprehensif</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-primary dark:text-white transition-colors duration-500">
-                Mau Belajar Apa Hari Ini?
-              </h2>
-            </div>
-
-            {/* Kontrol Navigasi Carousel (Panah Kiri/Kanan & Status Auto-scroll) */}
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              {/* Tombol Pause/Play Auto-scroll */}
-              <button
-                type="button"
-                onClick={() => setIsAutoScrollActive(!isAutoScrollActive)}
-                title={isAutoScrollActive ? "Jeda auto-scroll" : "Aktifkan auto-scroll"}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/10 hover:border-[#004A74] dark:hover:border-[#D4B856] shadow-sm backdrop-blur-md transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm text-[#004A74] dark:text-yellow-400">
-                  {isAutoScrollActive && !isCarouselHovered && selectedTopic === null ? 'autorenew' : 'pause_circle'}
-                </span>
-                <span className="hidden sm:inline">
-                  {isAutoScrollActive && !isCarouselHovered && selectedTopic === null ? 'Auto-scroll' : 'Dijeda'}
-                </span>
-              </button>
-
-              {/* Tombol Panah Kiri */}
-              <button
-                type="button"
-                onClick={() => scrollCarousel('left')}
-                aria-label="Geser ke kiri"
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80 dark:bg-slate-800/80 hover:bg-[#004A74] hover:text-white dark:hover:bg-[#D4B856] dark:hover:text-slate-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 shadow-sm backdrop-blur-md transition-all active:scale-95 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-xl">chevron_left</span>
-              </button>
-
-              {/* Tombol Panah Kanan */}
-              <button
-                type="button"
-                onClick={() => scrollCarousel('right')}
-                aria-label="Geser ke kanan"
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80 dark:bg-slate-800/80 hover:bg-[#004A74] hover:text-white dark:hover:bg-[#D4B856] dark:hover:text-slate-950 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-white/10 shadow-sm backdrop-blur-md transition-all active:scale-95 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-xl">chevron_right</span>
-              </button>
-            </div>
+          <div className="mb-14 md:mb-20">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-primary dark:text-white transition-colors duration-500">
+              Mau Belajar Apa Hari Ini?
+            </h2>
           </div>
 
-          {/* Carousel Container (Maks. 3 Kartu Sekaligus, Auto & Manual Scroll) */}
-          <div
-            ref={topicCarouselRef}
-            onMouseEnter={() => setIsCarouselHovered(true)}
-            onMouseLeave={() => setIsCarouselHovered(false)}
-            onScroll={handleCarouselScroll}
-            className="flex items-start gap-6 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-4 px-1"
-          >
+          {/* Grid 6 Materi Pilihan (Expandable Card & List Preview) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
             {TOPICS_LIST.map((topic) => {
               const isSelected = selectedTopic === topic.id;
               const matchedModules = getModulesForTopic(topic);
@@ -553,7 +429,7 @@ const PublicDashboard = () => {
                       handleTopicClick(topic.id);
                     }
                   }}
-                  className={`w-[85vw] min-w-[85vw] sm:w-[340px] sm:min-w-[340px] md:w-[calc((100%-24px)/2)] md:min-w-[calc((100%-24px)/2)] md:max-w-[calc((100%-24px)/2)] lg:w-[calc((100%-48px)/3)] lg:min-w-[calc((100%-48px)/3)] lg:max-w-[calc((100%-48px)/3)] flex-shrink-0 snap-start relative rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col border border-white/80 dark:border-white/10 backdrop-blur-2xl ${
+                  className={`relative rounded-3xl overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col border border-white/80 dark:border-white/10 backdrop-blur-2xl ${
                     isSelected
                       ? 'bg-white/95 dark:bg-slate-900/95 shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] -translate-y-1'
                       : 'bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_20px_45px_rgba(0,74,116,0.3)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_20px_45px_rgba(212,184,86,0.3)] hover:-translate-y-1.5 cursor-pointer group'
@@ -698,9 +574,9 @@ const PublicDashboard = () => {
                       {/* Garis Pembatas Halus */}
                       <div className="border-t border-slate-200/60 dark:border-white/10 mx-5"></div>
 
-                      {/* Daftar Materi yang Meluncur Turun Bersama (Maks. 3 Tampil, Lebih Bisa Di-scroll) */}
+                      {/* Daftar Materi yang Meluncur Turun Bersama */}
                       <div
-                        className={`p-4 pt-3 flex flex-col gap-2.5 max-h-[225px] overflow-y-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                        className={`p-4 pt-3 flex flex-col gap-2.5 max-h-[340px] overflow-y-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                           isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
                         }`}
                       >
@@ -777,23 +653,6 @@ const PublicDashboard = () => {
                 </div>
               );
             })}
-          </div>
-
-          {/* Indikator Titik Navigasi (Pagination Dots) */}
-          <div className="mt-6 flex items-center justify-center gap-2">
-            {TOPICS_LIST.map((topic, idx) => (
-              <button
-                key={topic.id}
-                type="button"
-                onClick={() => scrollToTopicIndex(idx)}
-                aria-label={`Buka topik ${topic.name}`}
-                className={`transition-all duration-300 rounded-full cursor-pointer ${
-                  activeTopicIndex === idx
-                    ? 'w-8 h-2.5 bg-[#004A74] dark:bg-[#D4B856] shadow-sm'
-                    : 'w-2.5 h-2.5 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-500'
-                }`}
-              />
-            ))}
           </div>
         </section>
 
