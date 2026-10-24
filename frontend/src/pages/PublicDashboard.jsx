@@ -124,75 +124,59 @@ const TopicModulesList = ({ modules, isSelected, onPreviewClick }) => {
   };
 
   return (
-    <div className="flex flex-col">
-      <div
-        ref={scrollRef}
-        onWheel={handleUserManualInteraction}
-        onTouchMove={handleUserManualInteraction}
-        onTouchStart={handleUserManualInteraction}
-        className={`p-3.5 pt-2 flex flex-col gap-2.5 overflow-y-auto scroll-smooth custom-slim-scrollbar transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-          modules.length > 3 ? 'max-h-[216px]' : 'max-h-[340px]'
-        } ${
-          isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
-        }`}
-      >
-        {modules.length > 0 ? (
-          modules.map((mod) => (
-            <div
-              key={mod.id}
-              onClick={() => onPreviewClick(mod)}
-              className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-[#004A74] dark:hover:border-[#D4B856] shadow-sm transition-all duration-300 cursor-pointer group/item hover:-translate-y-0.5 hover:shadow-md shrink-0"
-            >
-              {/* Background Foto Blur jika ada gambar yang di-upload */}
-              {mod.image_url ? (
-                <>
-                  <div
-                    className="absolute inset-0 bg-cover bg-center w-full h-full filter blur-[5px] scale-125 opacity-40 dark:opacity-30 group-hover/item:scale-135 transition-transform duration-500"
-                    style={{ backgroundImage: `url('${mod.image_url}')` }}
-                  ></div>
-                  <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
-                </>
-              ) : (
-                <div className="absolute inset-0 bg-slate-50 dark:bg-slate-800/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
-              )}
+    <div
+      ref={scrollRef}
+      onWheel={handleUserManualInteraction}
+      onTouchMove={handleUserManualInteraction}
+      onTouchStart={handleUserManualInteraction}
+      className={`p-3.5 pt-2 flex flex-col gap-2.5 overflow-y-auto scroll-smooth custom-slim-scrollbar transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        modules.length > 3 ? 'max-h-[216px]' : 'max-h-[340px]'
+      } ${
+        isSelected ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 pointer-events-none'
+      }`}
+    >
+      {modules.length > 0 ? (
+        modules.map((mod) => (
+          <div
+            key={mod.id}
+            onClick={() => onPreviewClick(mod)}
+            className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-white/10 hover:border-[#004A74] dark:hover:border-[#D4B856] shadow-sm transition-all duration-300 cursor-pointer group/item hover:-translate-y-0.5 hover:shadow-md shrink-0"
+          >
+            {/* Background Foto Blur jika ada gambar yang di-upload */}
+            {mod.image_url ? (
+              <>
+                <div
+                  className="absolute inset-0 bg-cover bg-center w-full h-full filter blur-[5px] scale-125 opacity-40 dark:opacity-30 group-hover/item:scale-135 transition-transform duration-500"
+                  style={{ backgroundImage: `url('${mod.image_url}')` }}
+                ></div>
+                <div className="absolute inset-0 bg-white/80 dark:bg-slate-900/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-slate-50 dark:bg-slate-800/80 group-hover/item:bg-[#004A74]/90 dark:group-hover/item:bg-[#D4B856]/90 transition-colors duration-200 z-10 pointer-events-none"></div>
+            )}
 
-              {/* Konten di atas Background Blur: Judul & Tombol Play */}
-              <div className="relative z-20 px-4 py-3 flex items-center justify-between gap-3 text-slate-800 dark:text-white group-hover/item:text-white dark:group-hover/item:text-slate-950 transition-colors duration-200">
-                <div className="flex items-center gap-3 min-w-0 flex-grow text-left">
-                  <div className="w-8 h-8 rounded-full bg-[#004A74]/10 dark:bg-white/10 group-hover/item:bg-white/20 dark:group-hover/item:bg-slate-950/20 text-[#004A74] dark:text-[#D4B856] group-hover/item:text-white dark:group-hover/item:text-slate-950 flex items-center justify-center shrink-0 shadow-sm transition-colors">
-                    <span className="material-symbols-outlined text-lg filled">play_arrow</span>
-                  </div>
-                  <span className="text-sm sm:text-base font-bold truncate">
-                    {mod.title}
-                  </span>
+            {/* Konten di atas Background Blur: Judul & Tombol Play */}
+            <div className="relative z-20 px-4 py-3 flex items-center justify-between gap-3 text-slate-800 dark:text-white group-hover/item:text-white dark:group-hover/item:text-slate-950 transition-colors duration-200">
+              <div className="flex items-center gap-3 min-w-0 flex-grow text-left">
+                <div className="w-8 h-8 rounded-full bg-[#004A74]/10 dark:bg-white/10 group-hover/item:bg-white/20 dark:group-hover/item:bg-slate-950/20 text-[#004A74] dark:text-[#D4B856] group-hover/item:text-white dark:group-hover/item:text-slate-950 flex items-center justify-center shrink-0 shadow-sm transition-colors">
+                  <span className="material-symbols-outlined text-lg filled">play_arrow</span>
                 </div>
+                <span className="text-sm sm:text-base font-bold truncate">
+                  {mod.title}
+                </span>
+              </div>
 
-                <div className="shrink-0 flex items-center gap-1 text-xs font-bold opacity-75 group-hover/item:opacity-100 transition-opacity">
-                  <span className="text-[11px]">15s</span>
-                  <span className="material-symbols-outlined text-base">arrow_forward</span>
-                </div>
+              <div className="shrink-0 flex items-center gap-1 text-xs font-bold opacity-75 group-hover/item:opacity-100 transition-opacity">
+                <span className="text-[11px]">15s</span>
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
               </div>
             </div>
-          ))
-        ) : (
-          <div className="py-6 px-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center">
-            <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-yellow-400 mb-1">pending</span>
-            <p className="text-xs font-bold text-slate-700 dark:text-white">Materi Segera Hadir</p>
           </div>
-        )}
-      </div>
-
-      {/* Indikator Halus Saat Ada Materi Berlebih yang Bergulir Otomatis */}
-      {modules.length > 3 && isSelected && (
-        <div className="px-5 pt-1 pb-0.5 flex items-center justify-between text-[11px] font-semibold text-slate-400 dark:text-slate-500 select-none">
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>{modules.length} Materi (Auto-scroll aktif)</span>
-          </span>
-          <span className="flex items-center gap-0.5 opacity-60">
-            <span>Bisa di-scroll</span>
-            <span className="material-symbols-outlined text-xs">unfold_more</span>
-          </span>
+        ))
+      ) : (
+        <div className="py-6 px-4 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center">
+          <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-yellow-400 mb-1">pending</span>
+          <p className="text-xs font-bold text-slate-700 dark:text-white">Materi Segera Hadir</p>
         </div>
       )}
     </div>
