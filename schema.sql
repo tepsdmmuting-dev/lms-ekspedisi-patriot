@@ -29,6 +29,8 @@ CREATE TABLE modules (
     external_url TEXT NOT NULL,
     category VARCHAR(100),
     topic VARCHAR(255),
+    module_name VARCHAR(255) DEFAULT 'Modul 1',
+    order_index INTEGER DEFAULT 1,
     image_url TEXT,
     image_source VARCHAR(255),
     visibility visibility_type DEFAULT 'restricted',

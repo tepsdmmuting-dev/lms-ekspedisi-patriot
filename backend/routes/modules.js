@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
         EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'pre_test') as has_pre_test,
         EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test
       FROM modules m 
-      ORDER BY m.id ASC
+      ORDER BY COALESCE(m.topic, 'ZZZ') ASC, COALESCE(m.module_name, 'Modul 1') ASC, COALESCE(m.order_index, 1) ASC, m.id ASC
     `);
     res.json(result.rows);
   } catch (err) {
@@ -38,16 +38,31 @@ router.get('/', async (req, res) => {
 });
 
 // @route   POST api/modules
-// @desc    Create a module
+// @desc    Create a module / lesson
 // @access  Private (Admin)
 router.post('/', [authMiddleware, adminMiddleware], async (req, res) => {
-  const { title, description, media_platform, external_url, category, topic, visibility, image_url, image_source } = req.body;
+  const { 
+    title, description, media_platform, external_url, category, 
+    topic, visibility, image_url, image_source, module_name, order_index 
+  } = req.body;
 
   try {
     const result = await db.query(
-      `INSERT INTO modules (title, description, media_platform, external_url, category, topic, visibility, image_url, image_source) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [title, description, media_platform, external_url, category, topic, visibility || 'restricted', image_url, image_source]
+      `INSERT INTO modules (title, description, media_platform, external_url, category, topic, visibility, image_url, image_source, module_name, order_index) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [
+        title, 
+        description, 
+        media_platform, 
+        external_url, 
+        category, 
+        topic, 
+        visibility || 'restricted', 
+        image_url, 
+        image_source,
+        module_name || 'Modul 1',
+        parseInt(order_index) || 1
+      ]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -56,17 +71,61 @@ router.post('/', [authMiddleware, adminMiddleware], async (req, res) => {
   }
 });
 
+// @route   PUT api/modules/batch-organize
+// @desc    Batch update module_name, order_index, or topic
+// @access  Private (Admin)
+router.put('/batch-organize', [authMiddleware, adminMiddleware], async (req, res) => {
+  const { updates } = req.body;
+  if (!Array.isArray(updates)) {
+    return res.status(400).json({ msg: 'Updates array is required' });
+  }
+
+  try {
+    for (const item of updates) {
+      await db.query(
+        `UPDATE modules 
+         SET module_name = COALESCE($1, module_name), 
+             order_index = COALESCE($2, order_index),
+             topic = COALESCE($3, topic),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $4`,
+        [item.module_name, item.order_index ? parseInt(item.order_index) : null, item.topic, item.id]
+      );
+    }
+    res.json({ msg: 'Modules organized successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   PUT api/modules/:id
-// @desc    Update a module
+// @desc    Update a module / lesson
 // @access  Private (Admin)
 router.put('/:id', [authMiddleware, adminMiddleware], async (req, res) => {
-  const { title, description, media_platform, external_url, category, topic, visibility, image_url, image_source } = req.body;
+  const { 
+    title, description, media_platform, external_url, category, 
+    topic, visibility, image_url, image_source, module_name, order_index 
+  } = req.body;
   try {
     const result = await db.query(
       `UPDATE modules 
-       SET title = $1, description = $2, media_platform = $3, external_url = $4, category = $5, topic = $6, visibility = $7, image_url = $8, image_source = $9, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $10 RETURNING *`,
-      [title, description, media_platform, external_url, category, topic, visibility, image_url, image_source, req.params.id]
+       SET title = $1, description = $2, media_platform = $3, external_url = $4, category = $5, topic = $6, visibility = $7, image_url = $8, image_source = $9, module_name = $10, order_index = $11, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $12 RETURNING *`,
+      [
+        title, 
+        description, 
+        media_platform, 
+        external_url, 
+        category, 
+        topic, 
+        visibility, 
+        image_url, 
+        image_source,
+        module_name || 'Modul 1',
+        parseInt(order_index) || 1,
+        req.params.id
+      ]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: 'Module not found' });

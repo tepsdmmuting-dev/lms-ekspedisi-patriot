@@ -16,13 +16,23 @@ const poolConfig = process.env.DATABASE_URL
 
 const pool = new Pool(poolConfig);
 
-// Test connection
-pool.connect((err, client, release) => {
+// Test connection and auto-migrate needed columns
+pool.connect(async (err, client, release) => {
   if (err) {
     console.error('Error acquiring client', err.stack);
   } else {
     console.log('Database connected successfully');
-    release();
+    try {
+      await client.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS module_name VARCHAR(255) DEFAULT 'Modul 1'");
+      await client.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1");
+      // Clean up any null values for older modules
+      await client.query("UPDATE modules SET module_name = 'Modul 1' WHERE module_name IS NULL OR module_name = ''");
+      await client.query("UPDATE modules SET order_index = 1 WHERE order_index IS NULL");
+    } catch (migErr) {
+      console.error('Migration warning (non-fatal):', migErr.message);
+    } finally {
+      release();
+    }
   }
 });
 

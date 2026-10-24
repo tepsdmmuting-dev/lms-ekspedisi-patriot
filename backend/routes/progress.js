@@ -7,20 +7,44 @@ const { authMiddleware } = require('../middleware/auth');
 // @desc    Get user progress for all modules
 // @access  Private
 router.get('/:userId', authMiddleware, async (req, res) => {
-  // Ensure user can only see their own progress unless admin
-  if (req.user.id !== parseInt(req.params.userId) && req.user.role !== 'admin') {
+  const userId = parseInt(req.params.userId);
+  // Ensure user can only see their own progress unless admin or co_admin
+  if (req.user.id !== userId && req.user.role !== 'admin' && req.user.role !== 'co_admin') {
     return res.status(403).json({ message: 'Unauthorized access' });
   }
 
   try {
-    const result = await db.query(
-      `SELECT m.*, pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
-       FROM modules m
-       LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1
-       WHERE m.topic IN (SELECT topic FROM user_topics WHERE user_id = $1)
-       ORDER BY m.topic, m.created_at ASC`,
-      [req.params.userId]
+    // Check if user has specific assigned topics
+    const assignedRes = await db.query(
+      "SELECT topic FROM user_topics WHERE user_id = $1 AND topic IS NOT NULL AND topic != ''",
+      [userId]
     );
+    const assignedTopics = assignedRes.rows.map(r => r.topic);
+
+    let query = '';
+    let params = [userId];
+
+    if (assignedTopics.length > 0) {
+      // User has specific assigned topics: filter by those topics
+      query = `
+        SELECT m.*, pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
+        FROM modules m
+        LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1
+        WHERE m.topic = ANY($2::varchar[])
+        ORDER BY m.topic ASC, m.module_name ASC, m.order_index ASC, m.id ASC
+      `;
+      params.push(assignedTopics);
+    } else {
+      // User has NO specific restrictions: show all modules so dashboard is NEVER empty!
+      query = `
+        SELECT m.*, pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
+        FROM modules m
+        LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1
+        ORDER BY COALESCE(m.topic, 'Lainnya') ASC, m.module_name ASC, m.order_index ASC, m.id ASC
+      `;
+    }
+
+    const result = await db.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error(err.message);

@@ -4,18 +4,26 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import QuizModal from '../components/QuizModal';
 import ThemeToggle from '../components/ThemeToggle';
+import { TOPICS_LIST } from '../constants/topics';
 
 const MemberDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const [modules, setModules] = useState([]);
+  const [loadingModules, setLoadingModules] = useState(true);
   const [moduleQuizzes, setModuleQuizzes] = useState({});
   const [activeQuiz, setActiveQuiz] = useState(null);
   
-  // Navigation State
+  // Navigation & Filter State
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedTopicTab, setSelectedTopicTab] = useState('ALL');
+  const [collapsedModules, setCollapsedModules] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [playingVideo, setPlayingVideo] = useState(null);
+
+  const toggleModuleCollapse = (key) => {
+    setCollapsedModules(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const getEmbedUrl = (url) => {
     if (!url) return '';
@@ -53,36 +61,42 @@ const MemberDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchProgress = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`/api/progress/${user.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setModules(data);
-          // Pre-fetch quizzes for all modules
-          const token2 = localStorage.getItem('token');
-          const quizzesMap = {};
-          await Promise.all(data.map(async (mod) => {
-            try {
-              const qRes = await fetch(`/api/quizzes/module/${mod.id}`, {
-                headers: { 'Authorization': `Bearer ${token2}` }
-              });
-              if (qRes.ok) quizzesMap[mod.id] = await qRes.json();
-              else quizzesMap[mod.id] = [];
-            } catch { quizzesMap[mod.id] = []; }
-          }));
-          setModuleQuizzes(quizzesMap);
-        }
-      } catch (err) {
-        console.error(err);
+  const fetchProgress = async () => {
+    setLoadingModules(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/progress/${user.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setModules(data);
+        // Pre-fetch quizzes for all modules
+        const token2 = localStorage.getItem('token');
+        const quizzesMap = {};
+        await Promise.all(data.map(async (mod) => {
+          try {
+            const qRes = await fetch(`/api/quizzes/module/${mod.id}`, {
+              headers: { 'Authorization': `Bearer ${token2}` }
+            });
+            if (qRes.ok) quizzesMap[mod.id] = await qRes.json();
+            else quizzesMap[mod.id] = [];
+          } catch { quizzesMap[mod.id] = []; }
+        }));
+        setModuleQuizzes(quizzesMap);
       }
-    };
-    fetchProgress();
-  }, [user.id]);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingModules(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchProgress();
+    }
+  }, [user?.id]);
 
   const fetchQuizzesForModule = async (moduleId) => {
     if (moduleQuizzes[moduleId]) return;
@@ -292,94 +306,370 @@ const MemberDashboard = () => {
 
           {activeTab === 'modules' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <header className="mb-8 lg:mb-12">
-                <h1 className="font-headline-xl text-headline-xl text-primary dark:text-white mb-2 transition-colors duration-500">Materi Belajar</h1>
-                <p className="font-body-lg text-body-lg text-on-surface-variant dark:text-slate-400 transition-colors duration-500">Daftar lengkap seluruh modul dan tugas yang harus Anda selesaikan.</p>
-              </header>
+              {/* Header Materi Belajar */}
+              <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 p-6 md:p-8 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition-colors duration-500">
+                <div>
+                  <h1 className="font-headline-xl text-2xl md:text-3xl font-bold text-primary dark:text-white mb-2 transition-colors duration-500 flex items-center gap-2.5">
+                    <span className="material-symbols-outlined text-secondary dark:text-yellow-400 text-3xl">menu_book</span>
+                    Materi Belajar
+                  </h1>
+                  <p className="text-sm md:text-base text-on-surface-variant dark:text-slate-400 transition-colors duration-500 max-w-2xl leading-relaxed">
+                    Kurikulum pembelajaran resmi Ekspedisi Patriot. Pelajari materi per topik dan modul, serta selesaikan pre-test dan post-test untuk membuka sertifikat digital.
+                  </p>
+                </div>
 
-              <div className="space-y-12">
-                {Object.entries(groupedModules).map(([topic, topicModules]) => {
-                  const completedInTopic = topicModules.filter(m => m.completed).length;
-                  const topicProgress = Math.round((completedInTopic / topicModules.length) * 100) || 0;
+                {/* Progress Summary Pill */}
+                <div className="bg-slate-100 dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700/70 shrink-0 flex flex-col gap-2 min-w-[220px]">
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-slate-600 dark:text-slate-400">Progres Belajar</span>
+                    <span className="text-primary dark:text-yellow-400">{overallProgress}% Selesai</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                    <div className="bg-secondary dark:bg-yellow-400 h-full rounded-full transition-all duration-700" style={{ width: `${overallProgress}%` }}></div>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                    {totalCompleted} dari {modules.length} Materi Tuntas
+                  </p>
+                </div>
+              </div>
 
+              {/* Filter Tabs Berdasarkan Topik */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTopicTab('ALL')}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                    selectedTopicTab === 'ALL'
+                      ? 'bg-primary dark:bg-blue-600 text-white shadow-md'
+                      : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-base">apps</span>
+                  <span>Semua Topik</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20">{modules.length}</span>
+                </button>
+
+                {TOPICS_LIST.map(topic => {
+                  const topicMods = modules.filter(m => (m.topic || '').toLowerCase() === topic.name.toLowerCase());
+                  const completedInTopic = topicMods.filter(m => m.completed).length;
                   return (
-                    <div key={topic} className="relative">
-                      {/* Topic Header */}
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-3 mb-6 bg-white/40 dark:bg-slate-800/40 backdrop-blur-md border border-white/50 dark:border-slate-700/50 p-4 rounded-xl shadow-sm transition-colors duration-500">
-                        <h3 className="font-headline-sm text-primary dark:text-white flex items-center gap-3 transition-colors duration-500">
-                          <span className="material-symbols-outlined text-secondary dark:text-yellow-400 transition-colors duration-500">folder_special</span> {topic}
-                        </h3>
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm font-bold text-on-surface-variant dark:text-slate-400 uppercase tracking-wide transition-colors duration-500">{topicProgress}% Tuntas</span>
-                          <div className="w-32 bg-white dark:bg-slate-900 rounded-full h-2.5 shadow-inner overflow-hidden border border-white dark:border-slate-700 transition-colors duration-500">
-                            <div className="bg-secondary dark:bg-yellow-400 h-full rounded-full transition-all duration-1000" style={{ width: `${topicProgress}%` }}></div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Cards Grid */}
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                        {topicModules.map((mod) => (
-                          <div key={mod.id} className="bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_15px_40px_rgb(0,0,0,0.12)] dark:hover:shadow-[0_15px_40px_rgba(0,0,0,0.4)] rounded-2xl p-5 flex flex-col sm:flex-row gap-5 transition-all duration-300 hover:-translate-y-1"
-                            onMouseEnter={() => fetchQuizzesForModule(mod.id)}
-                          >
-                            {/* Thumbnail */}
-                            <div onClick={() => handleMediaClick(mod)} className="w-full sm:w-32 h-40 sm:h-auto bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden shrink-0 relative group flex items-center justify-center border border-white/50 dark:border-slate-700/50 cursor-pointer block transition-colors duration-500">
-                              {mod.image_url ? (
-                                 <div className="absolute inset-0 bg-cover bg-center w-full h-full opacity-90 group-hover:scale-105 transition-transform duration-500 z-0" style={{ backgroundImage: `url('${mod.image_url}')` }}></div>
-                              ) : null}
-                              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors z-0"></div>
-                              <span className={`material-symbols-outlined text-4xl opacity-80 z-10 drop-shadow-md ${mod.media_platform === 'gdrive_pdf' ? 'text-red-500' : 'text-white'}`}>
-                                {getMediaIcon(mod.media_platform)}
-                              </span>
-                              <div className="absolute bottom-2 left-2 right-2 text-center bg-black/60 backdrop-blur-md text-white px-2 py-1 rounded-lg text-[10px] font-bold tracking-wider z-20">
-                                {mod.category}
-                              </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 flex flex-col">
-                              <div className="flex justify-between items-start gap-2 mb-2">
-                                <span className="text-[10px] font-bold text-secondary dark:text-yellow-400 uppercase tracking-widest bg-secondary/10 dark:bg-yellow-400/10 px-2 py-0.5 rounded-full transition-colors duration-500">{mod.media_platform}</span>
-                                <button 
-                                  onClick={() => handleToggleComplete(mod)}
-                                  className={`flex items-center justify-center transition-all hover:scale-110 ${mod.completed ? 'text-green-500 hover:text-green-600' : 'text-slate-300 dark:text-slate-600 hover:text-slate-400 dark:hover:text-slate-500'}`}
-                                  title={mod.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
-                                >
-                                  <span className="material-symbols-outlined text-[24px]">
-                                    {mod.completed ? 'check_circle' : 'radio_button_unchecked'}
-                                  </span>
-                                </button>
-                              </div>
-                              <div onClick={() => handleMediaClick(mod)} className="block mb-2 cursor-pointer">
-                                <h3 className="font-headline-sm font-bold text-primary dark:text-white line-clamp-2 leading-snug hover:text-[#004A74] dark:hover:text-blue-400 hover:underline decoration-primary/30 dark:decoration-blue-400/30 underline-offset-4 transition-all">{mod.title}</h3>
-                              </div>
-                              <p className="text-sm text-on-surface-variant dark:text-slate-400 line-clamp-2 mb-4 flex-1 transition-colors duration-500">{mod.description}</p>
-                              
-                              {/* Quiz Row */}
-                              {(moduleQuizzes[mod.id] && moduleQuizzes[mod.id].length > 0) && (
-                                <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex flex-wrap gap-2 transition-colors duration-500">
-                                  {moduleQuizzes[mod.id].map(q => (
-                                    <button
-                                      key={q.id}
-                                      onClick={() => openQuiz(q)}
-                                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border backdrop-blur-md shadow-sm transition-all hover:-translate-y-0.5 ${q.type === 'pre_test' ? 'border-orange-300/60 dark:border-orange-500/60 text-orange-700 dark:text-orange-400 bg-orange-100/50 dark:bg-orange-900/30 hover:bg-orange-100/80 dark:hover:bg-orange-900/50 hover:shadow-md' : 'border-blue-300/60 dark:border-blue-500/60 text-blue-700 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30 hover:bg-blue-100/80 dark:hover:bg-blue-900/50 hover:shadow-md'}`}
-                                    >
-                                      <span className="material-symbols-outlined text-[16px]">quiz</span>
-                                      {q.type === 'pre_test' ? 'Pre-Test' : 'Post-Test'}
-                                      {q.my_score !== null ? ` (${q.my_score})` : ''}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <button
+                      key={topic.id}
+                      type="button"
+                      onClick={() => setSelectedTopicTab(topic.name)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
+                        selectedTopicTab === topic.name
+                          ? 'bg-primary dark:bg-blue-600 text-white shadow-md'
+                          : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-base">{topic.icon}</span>
+                      <span>{topic.name}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedTopicTab === topic.name ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                        {completedInTopic}/{topicMods.length}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
+
+              {/* Loading Skeleton */}
+              {loadingModules && (
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+                  <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!loadingModules && modules.length === 0 && (
+                <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 rounded-2xl p-12 text-center max-w-xl mx-auto shadow-sm">
+                  <div className="w-16 h-16 rounded-full bg-secondary/20 text-secondary dark:text-yellow-400 flex items-center justify-center mx-auto mb-4">
+                    <span className="material-symbols-outlined text-3xl">school</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-primary dark:text-white mb-2">Belum Ada Materi Ditugaskan</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+                    Materi belajar untuk akun Anda belum tersedia atau instruktur sedang mempersiapkan kurikulum penugasan. Silakan segarkan halaman atau hubungi administrator jika Anda seharusnya memiliki akses.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={fetchProgress}
+                    className="px-6 py-2.5 bg-primary dark:bg-yellow-400 text-white dark:text-slate-900 rounded-xl font-bold text-sm shadow-md hover:opacity-90 flex items-center gap-2 mx-auto cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">refresh</span>
+                    <span>Segarkan Halaman</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Kurikulum LMS Terstruktur (Topik -> Modul -> Materi) */}
+              {!loadingModules && modules.length > 0 && (
+                <div className="space-y-10">
+                  {(() => {
+                    // Filter topics
+                    let topicsToRender = [];
+                    if (selectedTopicTab === 'ALL') {
+                      // Collect all distinct topics from modules + TOPICS_LIST order
+                      const usedTopics = Array.from(new Set(modules.map(m => m.topic || 'Lainnya')));
+                      topicsToRender = TOPICS_LIST.map(t => t.name).filter(name => usedTopics.some(u => u.toLowerCase() === name.toLowerCase()));
+                      usedTopics.forEach(u => {
+                        if (!topicsToRender.some(t => t.toLowerCase() === u.toLowerCase())) {
+                          topicsToRender.push(u);
+                        }
+                      });
+                    } else {
+                      topicsToRender = [selectedTopicTab];
+                    }
+
+                    return topicsToRender.map(currentTopic => {
+                      const topicModules = modules.filter(m => 
+                        (m.topic || 'Lainnya').toLowerCase() === currentTopic.toLowerCase()
+                      );
+
+                      if (topicModules.length === 0) {
+                        return (
+                          <div key={currentTopic} className="bg-white/60 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-8 rounded-2xl text-center">
+                            <span className="material-symbols-outlined text-3xl text-slate-400 mb-2">auto_stories</span>
+                            <h4 className="font-bold text-slate-700 dark:text-slate-200 text-sm">Belum ada materi untuk topik {currentTopic}</h4>
+                            <p className="text-xs text-slate-400 mt-1">Materi pada topik ini akan segera diperbarui oleh tim LMS.</p>
+                          </div>
+                        );
+                      }
+
+                      const completedInTopic = topicModules.filter(m => m.completed).length;
+                      const topicProgress = Math.round((completedInTopic / topicModules.length) * 100) || 0;
+                      const topicMeta = TOPICS_LIST.find(t => t.name.toLowerCase() === currentTopic.toLowerCase());
+
+                      // Group by module_name
+                      const moduleGroups = {};
+                      topicModules.forEach(m => {
+                        const modName = m.module_name || 'Modul 1';
+                        if (!moduleGroups[modName]) moduleGroups[modName] = [];
+                        moduleGroups[modName].push(m);
+                      });
+
+                      // Sort materials inside each module by order_index
+                      Object.keys(moduleGroups).forEach(modName => {
+                        moduleGroups[modName].sort((a, b) => (parseInt(a.order_index) || 1) - (parseInt(b.order_index) || 1));
+                      });
+
+                      const moduleNames = Object.keys(moduleGroups).sort((a, b) => {
+                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                      });
+
+                      return (
+                        <div key={currentTopic} className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 p-6 md:p-8 rounded-2xl shadow-sm space-y-6 transition-colors duration-500">
+                          {/* Topic Banner */}
+                          <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-700/60 gap-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-primary/10 dark:bg-yellow-400/20 text-primary dark:text-yellow-400 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-2xl">{topicMeta?.icon || 'folder_special'}</span>
+                              </div>
+                              <div>
+                                <h3 className="font-headline-sm text-lg md:text-xl font-bold text-primary dark:text-white flex items-center gap-2">
+                                  {currentTopic}
+                                </h3>
+                                {topicMeta?.subtitle && (
+                                  <p className="text-xs text-on-surface-variant dark:text-slate-400">{topicMeta.subtitle}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 self-end md:self-auto">
+                              <div className="text-right">
+                                <span className="text-xs font-bold text-primary dark:text-yellow-400">{completedInTopic} dari {topicModules.length} Tuntas</span>
+                                <p className="text-[10px] text-slate-400">{moduleNames.length} Modul Pembelajaran</p>
+                              </div>
+                              <div className="w-24 sm:w-32 bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                                <div className="bg-secondary dark:bg-yellow-400 h-full rounded-full transition-all duration-700" style={{ width: `${topicProgress}%` }}></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Accordion Modul 1, Modul 2, dst. */}
+                          <div className="space-y-4">
+                            {moduleNames.map((modName, modIdx) => {
+                              const materiList = moduleGroups[modName];
+                              const completedInMod = materiList.filter(m => m.completed).length;
+                              const isModCompleted = completedInMod === materiList.length;
+                              const modProgressPercent = Math.round((completedInMod / materiList.length) * 100);
+                              const collapseKey = `${currentTopic}_${modName}`;
+                              const isCollapsed = collapsedModules[collapseKey] === true;
+
+                              return (
+                                <div 
+                                  key={modName} 
+                                  className="bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl overflow-hidden transition-all shadow-sm"
+                                >
+                                  {/* Modul Header Bar */}
+                                  <div 
+                                    onClick={() => toggleModuleCollapse(collapseKey)}
+                                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-800/50 transition-colors select-none"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-extrabold shrink-0 ${
+                                        isModCompleted 
+                                          ? 'bg-emerald-500 text-white' 
+                                          : 'bg-primary/10 dark:bg-blue-900/30 text-primary dark:text-blue-400'
+                                      }`}>
+                                        {isModCompleted ? (
+                                          <span className="material-symbols-outlined text-base">check</span>
+                                        ) : (
+                                          modIdx + 1
+                                        )}
+                                      </span>
+                                      <div>
+                                        <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white flex items-center gap-2">
+                                          <span>{modName}</span>
+                                          {isModCompleted && (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                                              Tuntas
+                                            </span>
+                                          )}
+                                        </h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                          {materiList.length} Materi Pembelajaran • {completedInMod} Selesai
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 self-end sm:self-auto">
+                                      <div className="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden hidden sm:block">
+                                        <div className={`h-full rounded-full transition-all duration-500 ${isModCompleted ? 'bg-emerald-500' : 'bg-primary dark:bg-yellow-400'}`} style={{ width: `${modProgressPercent}%` }}></div>
+                                      </div>
+                                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 sm:min-w-[40px] text-right">
+                                        {modProgressPercent}%
+                                      </span>
+                                      <span className={`material-symbols-outlined text-slate-400 transition-transform duration-300 ${isCollapsed ? '' : 'rotate-180'}`}>
+                                        expand_more
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Modul Content: List of Materi */}
+                                  {!isCollapsed && (
+                                    <div className="p-4 sm:p-5 pt-0 space-y-3 border-t border-slate-200/50 dark:border-slate-800/60">
+                                      {materiList.map((mod, lIdx) => (
+                                        <div
+                                          key={mod.id}
+                                          className={`bg-white dark:bg-slate-800/90 border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md ${
+                                            mod.completed 
+                                              ? 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/20' 
+                                              : 'border-slate-200 dark:border-slate-700'
+                                          }`}
+                                          onMouseEnter={() => fetchQuizzesForModule(mod.id)}
+                                        >
+                                          {/* Left Info */}
+                                          <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+                                            {/* Sequence Badge */}
+                                            <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">
+                                              #{mod.order_index || lIdx + 1}
+                                            </span>
+
+                                            {/* Thumbnail / Media Icon */}
+                                            <div 
+                                              onClick={() => handleMediaClick(mod)}
+                                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0 relative group flex items-center justify-center border border-slate-200 dark:border-slate-700 cursor-pointer"
+                                            >
+                                              {mod.image_url ? (
+                                                <div className="absolute inset-0 bg-cover bg-center w-full h-full opacity-90 group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: `url('${mod.image_url}')` }}></div>
+                                              ) : null}
+                                              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
+                                              <span className={`material-symbols-outlined text-2xl z-10 drop-shadow-md ${
+                                                mod.media_platform === 'youtube' ? 'text-red-500' :
+                                                mod.media_platform === 'gdrive_pdf' ? 'text-rose-500' : 'text-white'
+                                              }`}>
+                                                {getMediaIcon(mod.media_platform)}
+                                              </span>
+                                            </div>
+
+                                            {/* Title & Desc */}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                <span className="text-[10px] font-bold text-secondary dark:text-yellow-400 uppercase tracking-widest bg-secondary/10 dark:bg-yellow-400/10 px-2 py-0.5 rounded-full">
+                                                  {mod.media_platform}
+                                                </span>
+                                                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                                  {mod.category}
+                                                </span>
+                                              </div>
+
+                                              <h4 
+                                                onClick={() => handleMediaClick(mod)}
+                                                className="font-bold text-sm sm:text-base text-primary dark:text-white line-clamp-1 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                                              >
+                                                {mod.title}
+                                              </h4>
+                                              <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                                                {mod.description || 'Klik untuk membuka materi pembelajaran.'}
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          {/* Right Actions & Quizzes */}
+                                          <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700/50">
+                                            {/* Quiz Buttons */}
+                                            {(moduleQuizzes[mod.id] && moduleQuizzes[mod.id].length > 0) && (
+                                              <div className="flex items-center gap-1.5">
+                                                {moduleQuizzes[mod.id].map(q => (
+                                                  <button
+                                                    key={q.id}
+                                                    type="button"
+                                                    onClick={() => openQuiz(q)}
+                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
+                                                      q.type === 'pre_test'
+                                                        ? 'border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100'
+                                                        : 'border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100'
+                                                    }`}
+                                                  >
+                                                    <span className="material-symbols-outlined text-sm">quiz</span>
+                                                    <span>{q.type === 'pre_test' ? 'Pre-Test' : 'Post-Test'}</span>
+                                                    {q.my_score !== null && <span className="font-extrabold text-[10px]">({q.my_score})</span>}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {/* Play/View Button */}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleMediaClick(mod)}
+                                              className="px-3.5 py-1.5 bg-primary/10 dark:bg-blue-500/20 text-primary dark:text-blue-400 hover:bg-primary hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                              <span className="material-symbols-outlined text-base">play_circle</span>
+                                              <span>Pelajari</span>
+                                            </button>
+
+                                            {/* Checkbox Selesai */}
+                                            <button 
+                                              type="button"
+                                              onClick={() => handleToggleComplete(mod)}
+                                              className={`flex items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+                                                mod.completed 
+                                                  ? 'text-emerald-500 hover:text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' 
+                                                  : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'
+                                              }`}
+                                              title={mod.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
+                                            >
+                                              <span className="material-symbols-outlined text-2xl">
+                                                {mod.completed ? 'check_circle' : 'radio_button_unchecked'}
+                                              </span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
             </div>
           )}
 
