@@ -2,63 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
+import { TOPICS_LIST } from '../constants/topics';
 
-const TOPICS_LIST = [
-  {
-    id: 'it',
-    name: 'IT',
-    subtitle: 'Teknologi & Digital',
-    icon: 'devices',
-    image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop',
-    keywords: ['it', 'teknologi', 'teknologi informasi', 'digital', 'coding', 'komputer', 'tech'],
-    desc: 'Pelajari dasar teknologi informasi, literasi digital, pengoperasian komputer, dan pemanfaatan teknologi modern untuk kemajuan daerah.'
-  },
-  {
-    id: 'kewirausahaan',
-    name: 'Kewirausahaan',
-    subtitle: 'Bisnis & Usaha Mandiri',
-    icon: 'storefront',
-    image: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?q=80&w=800&auto=format&fit=crop',
-    keywords: ['kewirausahaan', 'usaha', 'bisnis', 'umkm', 'wirausaha', 'entrepreneurship'],
-    desc: 'Kiat membangun usaha mandiri, mengelola potensi ekonomi lokal, strategi pemasaran, dan manajemen penjualan hasil bumi.'
-  },
-  {
-    id: 'kesehatan',
-    name: 'Kesehatan',
-    subtitle: 'Raga, Medis & Sanitasi',
-    icon: 'health_and_safety',
-    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=800&auto=format&fit=crop',
-    keywords: ['kesehatan', 'medis', 'gizi', 'sanitasi', 'hidup sehat', 'health'],
-    desc: 'Panduan pola hidup sehat, pertolongan pertama pada kecelakaan, pemenuhan gizi keluarga, dan sanitasi lingkungan masyarakat.'
-  },
-  {
-    id: 'bhineka-tunggal-ika',
-    name: 'Bhineka Tunggal Ika',
-    subtitle: 'Persatuan & Budaya Bangsa',
-    icon: 'diversity_3',
-    image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=800&auto=format&fit=crop',
-    keywords: ['bhineka tunggal ika', 'bhineka', 'kebangsaan', 'budaya', 'toleransi', 'persatuan', 'sosiologi'],
-    desc: 'Mempererat persaudaraan kebangsaan, merawat kearifan lokal, kerukunan hidup, dan semangat persatuan dari ufuk timur nusantara.'
-  },
-  {
-    id: 'keuangan',
-    name: 'Keuangan',
-    subtitle: 'Finansial & Kelola Anggaran',
-    icon: 'account_balance_wallet',
-    image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop',
-    keywords: ['keuangan', 'finansial', 'finance', 'anggaran', 'tabungan', 'uang'],
-    desc: 'Dasar pengelolaan keuangan pribadi & rumah tangga, pencatatan kas sederhana, menabung secara terencana, dan investasi bijak.'
-  },
-  {
-    id: 'karir-masa-depan',
-    name: 'Karir Masa Depan',
-    subtitle: 'Peluang Kerja & Profesi',
-    icon: 'rocket_launch',
-    image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=800&auto=format&fit=crop',
-    keywords: ['karir masa depan', 'karir', 'career', 'masa depan', 'profesi', 'kerja', 'kepemimpinan', 'leadership'],
-    desc: 'Pengembangan potensi diri anak negeri, kesiapan memasuki dunia kerja profesional, dan pembentukan kepemimpinan masa depan.'
-  }
-];
 
 // Komponen Sub-Daftar Materi dengan Batas Tampil Maksimal 3 dan Auto-Scroll Mulus ke Bawah
 const TopicModulesList = ({ modules, isSelected, onPreviewClick }) => {
@@ -569,7 +514,7 @@ const PublicDashboard = () => {
                       className={`absolute inset-0 bg-cover bg-center w-full h-full transition-transform duration-700 z-0 ${
                         isSelected ? 'scale-105' : 'group-hover:scale-110'
                       }`}
-                      style={{ backgroundImage: `url('${topic.image}')` }}
+                      style={{ backgroundImage: `url('${siteSettings[`topic_image_${topic.id}`] || topic.image}')` }}
                     ></div>
 
                     {/* Overlay: Default Filter (Tipis & Elegan) */}
