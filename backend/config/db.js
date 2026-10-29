@@ -16,34 +16,43 @@ const poolConfig = process.env.DATABASE_URL
 
 const pool = new Pool(poolConfig);
 
-// Test connection and auto-migrate needed columns
+let migrationDone = false;
+const ensureSchema = async () => {
+  if (migrationDone) return;
+  try {
+    await pool.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS module_name VARCHAR(255) DEFAULT 'Modul 1'");
+    await pool.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1");
+    await pool.query("ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0");
+    try {
+      await pool.query("ALTER TYPE media_platform_type ADD VALUE IF NOT EXISTS 'local_video'");
+    } catch (e) {}
+    try {
+      await pool.query("ALTER TYPE media_platform_type ADD VALUE IF NOT EXISTS 'local_pdf'");
+    } catch (e) {}
+    migrationDone = true;
+    console.log('Database schema and migrations verified successfully');
+  } catch (migErr) {
+    console.error('Migration warning (non-fatal):', migErr.message);
+  }
+};
+
+// Test connection on boot
 pool.connect(async (err, client, release) => {
   if (err) {
     console.error('Error acquiring client', err.stack);
   } else {
     console.log('Database connected successfully');
-    try {
-      await client.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS module_name VARCHAR(255) DEFAULT 'Modul 1'");
-      await client.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1");
-      // Clean up any null values for older modules
-      await client.query("UPDATE modules SET module_name = 'Modul 1' WHERE module_name IS NULL OR module_name = ''");
-      await client.query("UPDATE modules SET order_index = 1 WHERE order_index IS NULL");
-      // Auto-migrate enum values for offline support if media_platform_type exists
-      try {
-        await client.query("ALTER TYPE media_platform_type ADD VALUE IF NOT EXISTS 'local_video'");
-      } catch (e) {}
-      try {
-        await client.query("ALTER TYPE media_platform_type ADD VALUE IF NOT EXISTS 'local_pdf'");
-      } catch (e) {}
-    } catch (migErr) {
-      console.error('Migration warning (non-fatal):', migErr.message);
-    } finally {
-      release();
-    }
+    release();
+    ensureSchema();
   }
 });
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
+  query: async (text, params) => {
+    if (!migrationDone) {
+      await ensureSchema();
+    }
+    return pool.query(text, params);
+  },
   pool
 };
