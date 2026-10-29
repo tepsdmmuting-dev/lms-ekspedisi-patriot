@@ -30,6 +30,18 @@ router.get('/:userId', authMiddleware, async (req, res) => {
         SELECT m.*, 
           EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'pre_test') as has_pre_test,
           EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test,
+          COALESCE(
+            (SELECT json_agg(json_build_object(
+              'id', q.id, 
+              'title', q.title, 
+              'type', q.type, 
+              'order_index', q.order_index, 
+              'module_id', q.module_id,
+              'my_score', (SELECT MAX(score) FROM quiz_attempts qa WHERE qa.quiz_id = q.id AND qa.user_id = $1)
+            ) ORDER BY q.order_index ASC, q.id ASC)
+            FROM quizzes q WHERE q.module_id = m.id),
+            '[]'::json
+          ) as quizzes,
           pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
         FROM modules m
         LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1
@@ -43,6 +55,18 @@ router.get('/:userId', authMiddleware, async (req, res) => {
         SELECT m.*, 
           EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'pre_test') as has_pre_test,
           EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test,
+          COALESCE(
+            (SELECT json_agg(json_build_object(
+              'id', q.id, 
+              'title', q.title, 
+              'type', q.type, 
+              'order_index', q.order_index, 
+              'module_id', q.module_id,
+              'my_score', (SELECT MAX(score) FROM quiz_attempts qa WHERE qa.quiz_id = q.id AND qa.user_id = $1)
+            ) ORDER BY q.order_index ASC, q.id ASC)
+            FROM quizzes q WHERE q.module_id = m.id),
+            '[]'::json
+          ) as quizzes,
           pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
         FROM modules m
         LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1

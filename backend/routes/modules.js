@@ -26,7 +26,12 @@ router.get('/', async (req, res) => {
     const result = await db.query(`
       SELECT m.*, 
         EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'pre_test') as has_pre_test,
-        EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test
+        EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', q.id, 'title', q.title, 'type', q.type, 'order_index', q.order_index, 'module_id', q.module_id) ORDER BY q.order_index ASC, q.id ASC)
+           FROM quizzes q WHERE q.module_id = m.id),
+          '[]'::json
+        ) as quizzes
       FROM modules m 
       ORDER BY COALESCE(m.topic, 'ZZZ') ASC, COALESCE(m.module_name, 'Modul 1') ASC, COALESCE(m.order_index, 1) ASC, m.id ASC
     `);
@@ -82,17 +87,24 @@ router.put('/batch-organize', [authMiddleware, adminMiddleware], async (req, res
 
   try {
     for (const item of updates) {
-      await db.query(
-        `UPDATE modules 
-         SET module_name = COALESCE($1, module_name), 
-             order_index = COALESCE($2, order_index),
-             topic = COALESCE($3, topic),
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $4`,
-        [item.module_name, item.order_index ? parseInt(item.order_index) : null, item.topic, item.id]
-      );
+      if (item.is_quiz || item.item_type === 'quiz') {
+        await db.query(
+          `UPDATE quizzes SET order_index = $1 WHERE id = $2`,
+          [item.order_index !== undefined ? parseInt(item.order_index) : 0, item.id]
+        );
+      } else {
+        await db.query(
+          `UPDATE modules 
+           SET module_name = COALESCE($1, module_name), 
+               order_index = COALESCE($2, order_index),
+               topic = COALESCE($3, topic),
+               updated_at = CURRENT_TIMESTAMP
+           WHERE id = $4`,
+          [item.module_name, item.order_index ? parseInt(item.order_index) : null, item.topic, item.id]
+        );
+      }
     }
-    res.json({ msg: 'Modules organized successfully' });
+    res.json({ msg: 'Modules and quizzes organized successfully' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

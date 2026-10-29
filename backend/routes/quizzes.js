@@ -29,11 +29,16 @@ router.get('/module/:moduleId', authMiddleware, async (req, res) => {
 // @desc    Create a quiz
 // @access  Private (Admin)
 router.post('/', [authMiddleware, adminMiddleware], async (req, res) => {
-  const { module_id, title, type } = req.body;
+  const { module_id, title, type, order_index } = req.body;
+  const initialOrder = order_index !== undefined ? order_index : (type === 'pre_test' ? 0 : 999);
   try {
     const result = await db.query(
-      'INSERT INTO quizzes (module_id, title, type) VALUES ($1, $2, $3) ON CONFLICT (module_id, type) DO UPDATE SET title = EXCLUDED.title RETURNING *',
-      [module_id, title, type]
+      `INSERT INTO quizzes (module_id, title, type, order_index) 
+       VALUES ($1, $2, $3, $4) 
+       ON CONFLICT (module_id, type) 
+       DO UPDATE SET title = EXCLUDED.title, order_index = COALESCE(quizzes.order_index, EXCLUDED.order_index) 
+       RETURNING *`,
+      [module_id, title, type, initialOrder]
     );
     res.json(result.rows[0]);
   } catch (err) {

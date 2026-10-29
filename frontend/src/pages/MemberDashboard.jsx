@@ -574,190 +574,206 @@ const MemberDashboard = () => {
                                     </div>
                                   </div>
 
-                                  {/* Modul Content: Organized by Sections */}
+                                  {/* Modul Content: Organized by Custom Sequence */}
                                   {!isCollapsed && (
                                     <div className="p-4 sm:p-5 pt-0 border-t border-slate-200/50 dark:border-slate-800/60">
                                       {(() => {
                                         const repModule = materiList.find(m => m.has_pre_test || m.has_post_test) || materiList[0];
-                                        const preTestQuiz = materiList.map(m => moduleQuizzes[m.id]?.find(q => q.type === 'pre_test')).find(Boolean);
-                                        const postTestQuiz = materiList.map(m => moduleQuizzes[m.id]?.find(q => q.type === 'post_test')).find(Boolean);
-                                        const hasPreTest = materiList.some(m => m.has_pre_test) || !!preTestQuiz;
-                                        const hasPostTest = materiList.some(m => m.has_post_test) || !!postTestQuiz;
+
+                                        // Collect all quizzes across materiList in this module group, deduplicated by id
+                                        const allModQuizzesMap = new Map();
+                                        materiList.forEach(m => {
+                                          (m.quizzes || []).forEach(q => {
+                                            if (!allModQuizzesMap.has(q.id)) {
+                                              allModQuizzesMap.set(q.id, { ...q, parentModule: m });
+                                            }
+                                          });
+                                          (moduleQuizzes[m.id] || []).forEach(q => {
+                                            if (!allModQuizzesMap.has(q.id)) {
+                                              allModQuizzesMap.set(q.id, { ...q, parentModule: m });
+                                            }
+                                          });
+                                        });
+                                        const modQuizzes = Array.from(allModQuizzesMap.values());
+
+                                        // Combined items: Pre-Test, Lessons (Materi), and Post-Test all in one list, sorted by order_index
+                                        const combinedItems = [
+                                          ...materiList.map(mod => ({
+                                            itemType: 'materi',
+                                            id: mod.id,
+                                            data: mod,
+                                            order_index: mod.order_index != null ? Number(mod.order_index) : 1,
+                                            title: mod.title
+                                          })),
+                                          ...modQuizzes.map(q => ({
+                                            itemType: 'quiz',
+                                            quizType: q.type,
+                                            id: q.id,
+                                            data: q,
+                                            order_index: q.order_index != null ? Number(q.order_index) : (q.type === 'pre_test' ? 0 : 999),
+                                            title: q.title || (q.type === 'pre_test' ? `Pre-Test: ${modName}` : `Post-Test: ${modName}`)
+                                          }))
+                                        ].sort((a, b) => a.order_index - b.order_index);
 
                                         return (
-                                          <div className="space-y-4 pt-3">
-                                            {/* Section 1: Pre-Test */}
-                                            {hasPreTest && (
-                                              <div className="bg-amber-500/10 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xs">
-                                                <div className="flex items-center gap-3.5 min-w-0">
-                                                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                                    <span className="material-symbols-outlined text-2xl">assignment_turned_in</span>
-                                                  </div>
-                                                  <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-widest bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
-                                                        Section 1 • Pre-Test
-                                                      </span>
-                                                      {preTestQuiz?.my_score !== null && preTestQuiz?.my_score !== undefined && (
-                                                        <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
-                                                          Skor Anda: {preTestQuiz.my_score} / 100
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                    <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 mt-1 truncate">
-                                                      Pre-Test: {modName}
-                                                    </h4>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                      Uji pemahaman awal Anda sebelum mempelajari materi dalam modul ini.
-                                                    </p>
-                                                  </div>
-                                                </div>
+                                          <div className="space-y-3 pt-3">
+                                            {combinedItems.map((item, itemIdx) => {
+                                              if (item.itemType === 'quiz') {
+                                                const isPreTest = item.quizType === 'pre_test';
+                                                const quiz = item.data;
+                                                const hasScore = quiz?.my_score !== null && quiz?.my_score !== undefined;
 
-                                                <button
-                                                  type="button"
-                                                  onClick={() => preTestQuiz ? openQuiz(preTestQuiz) : openQuizByType(repModule.id, 'pre_test')}
-                                                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm hover-lift"
-                                                >
-                                                  <span className="material-symbols-outlined text-base">quiz</span>
-                                                  <span>{preTestQuiz?.my_score !== null && preTestQuiz?.my_score !== undefined ? 'Kerjakan Ulang Pre-Test' : 'Mulai Pre-Test'}</span>
-                                                </button>
-                                              </div>
-                                            )}
-
-                                            {/* Section 2: Materi Pembelajaran */}
-                                            <div className="space-y-3">
-                                              <div className="flex items-center justify-between pt-1">
-                                                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                                  <span className="material-symbols-outlined text-base text-primary dark:text-blue-400">video_library</span>
-                                                  <span>Section 2 • Materi Pembelajaran ({materiList.length})</span>
-                                                </span>
-                                              </div>
-
-                                              <div className="space-y-3">
-                                                {materiList.map((mod, lIdx) => (
+                                                return (
                                                   <div
-                                                    key={mod.id}
-                                                    className={`bg-white dark:bg-slate-800/90 border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md ${
-                                                      mod.completed 
-                                                        ? 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/20' 
-                                                        : 'border-slate-200 dark:border-slate-700'
+                                                    key={`quiz-${item.id}`}
+                                                    className={`rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xs transition-all ${
+                                                      isPreTest
+                                                        ? 'bg-amber-500/10 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-700/60'
+                                                        : 'bg-blue-500/10 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-700/60'
                                                     }`}
-                                                    onMouseEnter={() => fetchQuizzesForModule(mod.id)}
                                                   >
-                                                    {/* Left Info */}
-                                                    <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-                                                      <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">
-                                                        #{mod.order_index || lIdx + 1}
+                                                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                                                      <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                                                        #{itemIdx + 1}
                                                       </span>
 
-                                                      <div 
-                                                        onClick={() => handleMediaClick(mod)}
-                                                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0 relative group flex items-center justify-center border border-slate-200 dark:border-slate-700 cursor-pointer"
-                                                      >
-                                                        {mod.image_url ? (
-                                                          <div className="absolute inset-0 bg-cover bg-center w-full h-full opacity-90 group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: `url('${mod.image_url}')` }}></div>
-                                                        ) : null}
-                                                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
-                                                        <span className={`material-symbols-outlined text-2xl z-10 drop-shadow-md ${
-                                                          mod.media_platform === 'youtube' ? 'text-red-500' :
-                                                          mod.media_platform === 'gdrive_pdf' ? 'text-rose-500' : 'text-white'
-                                                        }`}>
-                                                          {getMediaIcon(mod.media_platform)}
+                                                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                                                        isPreTest ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
+                                                      }`}>
+                                                        <span className="material-symbols-outlined text-2xl">
+                                                          {isPreTest ? 'assignment_turned_in' : 'task_alt'}
                                                         </span>
                                                       </div>
 
-                                                      <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                          <span className="text-[10px] font-bold text-secondary dark:text-yellow-400 uppercase tracking-widest bg-secondary/10 dark:bg-yellow-400/10 px-2 py-0.5 rounded-full">
-                                                            {mod.media_platform}
+                                                      <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                          <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                                            isPreTest
+                                                              ? 'text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40'
+                                                              : 'text-blue-800 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40'
+                                                          }`}>
+                                                            {isPreTest ? 'PRE-TEST MODUL' : 'POST-TEST (EVALUASI AKHIR)'}
                                                           </span>
-                                                          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                                                            {mod.category}
-                                                          </span>
+                                                          {hasScore && (
+                                                            <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                                                              Skor Anda: {quiz.my_score} / 100
+                                                            </span>
+                                                          )}
                                                         </div>
-
-                                                        <h4 
-                                                          onClick={() => handleMediaClick(mod)}
-                                                          className="font-bold text-sm sm:text-base text-primary dark:text-white line-clamp-1 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
-                                                        >
-                                                          {mod.title}
+                                                        <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 mt-1 truncate">
+                                                          {item.title}
                                                         </h4>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
-                                                          {mod.description || 'Klik untuk membuka materi pembelajaran.'}
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                          {isPreTest
+                                                            ? 'Uji pemahaman awal Anda sebelum mempelajari materi dalam modul ini.'
+                                                            : 'Selesaikan evaluasi akhir ini untuk menguji hasil pemahaman Anda setelah mempelajari materi.'}
                                                         </p>
                                                       </div>
                                                     </div>
 
-                                                    {/* Right Actions (Clean, no quiz buttons inside) */}
-                                                    <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700/50">
-                                                      {/* Play/View Button */}
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => handleMediaClick(mod)}
-                                                        className="px-3.5 py-1.5 bg-primary/10 dark:bg-blue-500/20 text-primary dark:text-blue-400 hover:bg-primary hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                                                      >
-                                                        <span className="material-symbols-outlined text-base">play_circle</span>
-                                                        <span>Pelajari</span>
-                                                      </button>
-
-                                                      {/* Checkbox Selesai */}
-                                                      <button 
-                                                        type="button"
-                                                        onClick={() => handleToggleComplete(mod)}
-                                                        className={`flex items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
-                                                          mod.completed 
-                                                            ? 'text-emerald-500 hover:text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' 
-                                                            : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'
-                                                        }`}
-                                                        title={mod.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
-                                                      >
-                                                        <span className="material-symbols-outlined text-2xl">
-                                                          {mod.completed ? 'check_circle' : 'radio_button_unchecked'}
-                                                        </span>
-                                                      </button>
-                                                    </div>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => openQuiz(quiz)}
+                                                      className={`px-4 py-2 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm hover-lift text-white ${
+                                                        isPreTest
+                                                          ? 'bg-amber-500 hover:bg-amber-600'
+                                                          : 'bg-blue-600 hover:bg-blue-700'
+                                                      }`}
+                                                    >
+                                                      <span className="material-symbols-outlined text-base">quiz</span>
+                                                      <span>{hasScore ? `Kerjakan Ulang ${isPreTest ? 'Pre-Test' : 'Post-Test'}` : `Mulai ${isPreTest ? 'Pre-Test' : 'Post-Test'}`}</span>
+                                                    </button>
                                                   </div>
-                                                ))}
-                                              </div>
-                                            </div>
+                                                );
+                                              }
 
-                                            {/* Section 3: Post-Test */}
-                                            {hasPostTest && (
-                                              <div className="bg-blue-500/10 dark:bg-blue-950/20 border border-blue-300 dark:border-blue-700/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xs">
-                                                <div className="flex items-center gap-3.5 min-w-0">
-                                                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                                                    <span className="material-symbols-outlined text-2xl">task_alt</span>
-                                                  </div>
-                                                  <div className="min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase tracking-widest bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 rounded-full">
-                                                        Section 3 • Post-Test (Evaluasi Akhir)
+                                              // Lesson item
+                                              const mod = item.data;
+                                              return (
+                                                <div
+                                                  key={`materi-${mod.id}`}
+                                                  className={`bg-white dark:bg-slate-800/90 border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md ${
+                                                    mod.completed 
+                                                      ? 'border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/20' 
+                                                      : 'border-slate-200 dark:border-slate-700'
+                                                  }`}
+                                                  onMouseEnter={() => fetchQuizzesForModule(mod.id)}
+                                                >
+                                                  {/* Left Info */}
+                                                  <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+                                                    <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0">
+                                                      #{itemIdx + 1}
+                                                    </span>
+
+                                                    <div 
+                                                      onClick={() => handleMediaClick(mod)}
+                                                      className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-slate-100 dark:bg-slate-900 overflow-hidden shrink-0 relative group flex items-center justify-center border border-slate-200 dark:border-slate-700 cursor-pointer"
+                                                    >
+                                                      {mod.image_url ? (
+                                                        <div className="absolute inset-0 bg-cover bg-center w-full h-full opacity-90 group-hover:scale-110 transition-transform duration-500" style={{ backgroundImage: `url('${mod.image_url}')` }}></div>
+                                                      ) : null}
+                                                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
+                                                      <span className={`material-symbols-outlined text-2xl z-10 drop-shadow-md ${
+                                                        mod.media_platform === 'youtube' ? 'text-red-500' :
+                                                        mod.media_platform === 'gdrive_pdf' ? 'text-rose-500' : 'text-white'
+                                                      }`}>
+                                                        {getMediaIcon(mod.media_platform)}
                                                       </span>
-                                                      {postTestQuiz?.my_score !== null && postTestQuiz?.my_score !== undefined && (
-                                                        <span className="text-xs font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
-                                                          Skor Anda: {postTestQuiz.my_score} / 100
-                                                        </span>
-                                                      )}
                                                     </div>
-                                                    <h4 className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-100 mt-1 truncate">
-                                                      Post-Test: {modName}
-                                                    </h4>
-                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                      Selesaikan evaluasi akhir ini untuk menguji hasil pemahaman Anda setelah mempelajari semua materi.
-                                                    </p>
+
+                                                    <div className="flex-1 min-w-0">
+                                                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                        <span className="text-[10px] font-bold text-secondary dark:text-yellow-400 uppercase tracking-widest bg-secondary/10 dark:bg-yellow-400/10 px-2 py-0.5 rounded-full">
+                                                          {mod.media_platform}
+                                                        </span>
+                                                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                                          {mod.category}
+                                                        </span>
+                                                      </div>
+
+                                                      <h4 
+                                                        onClick={() => handleMediaClick(mod)}
+                                                        className="font-bold text-sm sm:text-base text-primary dark:text-white line-clamp-1 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors"
+                                                      >
+                                                        {mod.title}
+                                                      </h4>
+                                                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                                                        {mod.description || 'Klik untuk membuka materi pembelajaran.'}
+                                                      </p>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Right Actions */}
+                                                  <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700/50">
+                                                    {/* Play/View Button */}
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleMediaClick(mod)}
+                                                      className="px-3.5 py-1.5 bg-primary/10 dark:bg-blue-500/20 text-primary dark:text-blue-400 hover:bg-primary hover:text-white dark:hover:bg-blue-500 dark:hover:text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                                                    >
+                                                      <span className="material-symbols-outlined text-base">play_circle</span>
+                                                      <span>Pelajari</span>
+                                                    </button>
+
+                                                    {/* Checkbox Selesai */}
+                                                    <button 
+                                                      type="button"
+                                                      onClick={() => handleToggleComplete(mod)}
+                                                      className={`flex items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
+                                                        mod.completed 
+                                                          ? 'text-emerald-500 hover:text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' 
+                                                          : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'
+                                                      }`}
+                                                      title={mod.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
+                                                    >
+                                                      <span className="material-symbols-outlined text-2xl">
+                                                        {mod.completed ? 'check_circle' : 'radio_button_unchecked'}
+                                                      </span>
+                                                    </button>
                                                   </div>
                                                 </div>
-
-                                                <button
-                                                  type="button"
-                                                  onClick={() => postTestQuiz ? openQuiz(postTestQuiz) : openQuizByType(repModule.id, 'post_test')}
-                                                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-sm hover-lift"
-                                                >
-                                                  <span className="material-symbols-outlined text-base">quiz</span>
-                                                  <span>{postTestQuiz?.my_score !== null && postTestQuiz?.my_score !== undefined ? 'Kerjakan Ulang Post-Test' : 'Mulai Post-Test'}</span>
-                                                </button>
-                                              </div>
-                                            )}
+                                              );
+                                            })}
                                           </div>
                                         );
                                       })()}

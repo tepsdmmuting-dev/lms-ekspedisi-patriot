@@ -35,6 +35,63 @@ const AdminDashboard = () => {
     title: '', description: '', media_platform: 'youtube', external_url: '', category: 'Pelatihan', topic: 'IT', module_name: 'Modul 1', order_index: 1, visibility: 'restricted', image_url: '', image_source: ''
   });
 
+  // Drag-and-drop & Reordering state for curriculum items
+  const [draggedItem, setDraggedItem] = useState(null); // { modName, index }
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  const handleReorderItems = async (modName, newItems) => {
+    const updates = newItems.map((item, idx) => ({
+      id: item.id,
+      item_type: item.itemType,
+      is_quiz: item.itemType === 'quiz',
+      order_index: idx + 1,
+      module_name: modName
+    }));
+
+    // Optimistic local update
+    setModules(prev => prev.map(m => {
+      const up = updates.find(u => !u.is_quiz && u.id === m.id);
+      let updatedQuizzes = m.quizzes;
+      if (m.quizzes && m.quizzes.length > 0) {
+        updatedQuizzes = m.quizzes.map(q => {
+          const qu = updates.find(u => u.is_quiz && u.id === q.id);
+          return qu ? { ...q, order_index: qu.order_index } : q;
+        });
+      }
+      return {
+        ...m,
+        order_index: up ? up.order_index : m.order_index,
+        quizzes: updatedQuizzes
+      };
+    }));
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/modules/batch-organize', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ updates })
+      });
+      if (res.ok) {
+        fetchModules();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const moveItem = (modName, items, index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    const reordered = [...items];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    handleReorderItems(modName, reordered);
+  };
+
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -857,14 +914,44 @@ const AdminDashboard = () => {
                             {moduleNames.map((modName, modIdx) => {
                               const materiList = moduleGroups[modName];
                               const repModule = materiList.find(m => m.has_pre_test || m.has_post_test) || materiList[0];
-                              const hasPreTest = materiList.some(m => m.has_pre_test);
-                              const hasPostTest = materiList.some(m => m.has_post_test);
+
+                              // Collect all quizzes across materiList in this module group, deduplicated by id
+                              const allModQuizzesMap = new Map();
+                              materiList.forEach(m => {
+                                (m.quizzes || []).forEach(q => {
+                                  if (!allModQuizzesMap.has(q.id)) {
+                                    allModQuizzesMap.set(q.id, { ...q, parentModule: m });
+                                  }
+                                });
+                              });
+                              const modQuizzes = Array.from(allModQuizzesMap.values());
+                              const preTestQuiz = modQuizzes.find(q => q.type === 'pre_test');
+                              const postTestQuiz = modQuizzes.find(q => q.type === 'post_test');
+
+                              // Combined items: Pre-Test, Lessons (Materi), and Post-Test all in one list
+                              const combinedItems = [
+                                ...materiList.map(mod => ({
+                                  itemType: 'materi',
+                                  id: mod.id,
+                                  data: mod,
+                                  order_index: mod.order_index != null ? Number(mod.order_index) : 1,
+                                  title: mod.title
+                                })),
+                                ...modQuizzes.map(q => ({
+                                  itemType: 'quiz',
+                                  quizType: q.type,
+                                  id: q.id,
+                                  data: q,
+                                  order_index: q.order_index != null ? Number(q.order_index) : (q.type === 'pre_test' ? 0 : 999),
+                                  title: q.title || (q.type === 'pre_test' ? `Pre-Test Modul: ${modName}` : `Post-Test Modul: ${modName}`)
+                                }))
+                              ].sort((a, b) => a.order_index - b.order_index);
 
                               return (
                                 <div key={modName} className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl p-5 transition-all hover:border-primary/40 space-y-4">
-                                  {/* Module Bar */}
-                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-700/50 gap-2">
-                                    <div className="flex items-center gap-2">
+                                  {/* Module Header Bar */}
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-700/50 gap-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span className="w-6 h-6 rounded-md bg-secondary/20 dark:bg-yellow-400/20 text-secondary dark:text-yellow-400 text-xs font-bold flex items-center justify-center">
                                         {modIdx + 1}
                                       </span>
@@ -872,194 +959,329 @@ const AdminDashboard = () => {
                                         {modName}
                                       </h4>
                                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                                        {materiList.length} Materi
+                                        {combinedItems.length} Komponen ({materiList.length} Materi{preTestQuiz ? ' • 1 Pre-Test' : ''}{postTestQuiz ? ' • 1 Post-Test' : ''})
                                       </span>
                                     </div>
 
-                                    <button
-                                      type="button"
-                                      onClick={() => openFormForAdd(isNoTopic ? '' : currentTopic, modName)}
-                                      className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-                                    >
-                                      <span className="material-symbols-outlined text-sm">add</span>
-                                      <span>Tambah Materi di Modul Ini</span>
-                                    </button>
-                                  </div>
+                                    {/* Action buttons: Add Pre-Test / Post-Test / Materi */}
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {!preTestQuiz && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setQuizModule({ module: repModule, initialType: 'pre_test' })}
+                                          className="px-2.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-100/80 dark:bg-amber-950/40 hover:bg-amber-200/80 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                                        >
+                                          <span className="material-symbols-outlined text-sm">add_circle</span>
+                                          <span>+ Pre-Test</span>
+                                        </button>
+                                      )}
 
-                                  {/* Section 1: Pre-Test Modul */}
-                                  <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
-                                    hasPreTest 
-                                      ? 'bg-amber-500/10 border-amber-300 dark:border-amber-700/60 text-slate-800 dark:text-slate-100' 
-                                      : 'bg-white/60 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-700 text-slate-500'
-                                  }`}>
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                                        hasPreTest ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
-                                      }`}>
-                                        <span className="material-symbols-outlined text-xl">assignment_turned_in</span>
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                                            Section 1: Pre-Test Modul
-                                          </span>
-                                          {hasPreTest && (
-                                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
-                                              Aktif ✓
-                                            </span>
-                                          )}
-                                        </div>
-                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
-                                          {hasPreTest ? `Kuis Pre-Test (${modName}) — Siap dikerjakan siswa sebelum membaca materi` : `Belum ada kuis Pre-Test untuk ${modName}`}
-                                        </p>
-                                      </div>
-                                    </div>
+                                      {!postTestQuiz && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setQuizModule({ module: repModule, initialType: 'post_test' })}
+                                          className="px-2.5 py-1 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-950/40 hover:bg-blue-200/80 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                                        >
+                                          <span className="material-symbols-outlined text-sm">add_circle</span>
+                                          <span>+ Post-Test</span>
+                                        </button>
+                                      )}
 
-                                    <button
-                                      type="button"
-                                      onClick={() => setQuizModule({ module: repModule, initialType: 'pre_test' })}
-                                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                                        hasPreTest
-                                          ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500 shadow-sm'
-                                          : 'bg-white dark:bg-slate-800 hover:bg-amber-50 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-700 hover:border-amber-400'
-                                      }`}
-                                    >
-                                      <span className="material-symbols-outlined text-sm">{hasPreTest ? 'edit_note' : 'add'}</span>
-                                      <span>{hasPreTest ? 'Edit Soal Pre-Test' : '+ Buat Pre-Test'}</span>
-                                    </button>
-                                  </div>
-
-                                  {/* Section 2: Materi Pembelajaran */}
-                                  <div className="space-y-2.5">
-                                    <div className="flex items-center justify-between pt-1">
-                                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                                        <span className="material-symbols-outlined text-sm">video_library</span>
-                                        <span>Section 2: Materi Pembelajaran ({materiList.length})</span>
-                                      </span>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                    {materiList.map((mod) => (
-                                      <div
-                                        key={mod.id}
-                                        className="bg-white dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-700 rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:shadow-sm transition-all"
+                                      <button
+                                        type="button"
+                                        onClick={() => openFormForAdd(isNoTopic ? '' : currentTopic, modName)}
+                                        className="px-2.5 py-1 text-xs font-bold text-primary dark:text-yellow-400 bg-primary/10 dark:bg-yellow-400/10 hover:bg-primary/20 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
                                       >
-                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                          {/* Urutan Badge */}
-                                          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                                            #{mod.order_index || 1}
-                                          </div>
+                                        <span className="material-symbols-outlined text-sm">add</span>
+                                        <span>+ Materi</span>
+                                      </button>
+                                    </div>
+                                  </div>
 
-                                          {/* Platform Icon */}
-                                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                                            <span className={`material-symbols-outlined text-lg ${
-                                              mod.media_platform === 'youtube' ? 'text-red-500' :
-                                              mod.media_platform === 'gdrive_pdf' ? 'text-rose-600' :
-                                              mod.media_platform === 'tiktok' ? 'text-slate-900 dark:text-white' : 'text-purple-500'
-                                            }`}>
-                                              {mod.media_platform === 'youtube' ? 'smart_display' :
-                                               mod.media_platform === 'gdrive_pdf' ? 'picture_as_pdf' :
-                                               mod.media_platform === 'tiktok' ? 'movie' : 'video_library'}
-                                            </span>
-                                          </div>
+                                  {/* Helpful Hint banner */}
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 px-3 py-2 rounded-lg">
+                                    <span className="material-symbols-outlined text-sm text-primary dark:text-yellow-400 shrink-0">drag_indicator</span>
+                                    <span>
+                                      <strong>Atur Urutan Bebas:</strong> Geser ikon <span className="font-semibold">⠿</span> atau gunakan panah <span className="font-semibold">▲ / ▼</span> untuk mengatur posisi Pre-Test, Post-Test, maupun Materi.
+                                    </span>
+                                  </div>
 
-                                          {/* Title & Info */}
-                                          <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="text-sm font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:text-blue-600" onClick={() => openFormForEdit(mod)}>
-                                                {mod.title}
-                                              </span>
-                                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                                {mod.category}
-                                              </span>
-                                            </div>
-                                            <p className="text-[11px] text-slate-400 truncate max-w-md">{mod.external_url}</p>
-                                          </div>
-                                        </div>
+                                  {/* Reorderable Items List */}
+                                  <div className="space-y-2">
+                                    {combinedItems.map((item, idx) => {
+                                      const isDragOver = dragOverIndex === idx && draggedItem && draggedItem.modName === modName;
 
-                                        {/* Right Badges & Controls */}
-                                        <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
-                                          {/* Visibility Toggle */}
-                                          <button
-                                            type="button"
-                                            onClick={() => handleToggleVisibility(mod)}
-                                            className="flex items-center gap-1.5 text-[11px] font-bold cursor-pointer"
-                                            title="Klik untuk ubah visibilitas"
+                                      if (item.itemType === 'quiz') {
+                                        const isPreTest = item.quizType === 'pre_test';
+                                        return (
+                                          <div
+                                            key={`quiz-${item.id}`}
+                                            draggable
+                                            onDragStart={(e) => {
+                                              e.dataTransfer.setData('text/plain', '');
+                                              setDraggedItem({ modName, index: idx });
+                                            }}
+                                            onDragOver={(e) => {
+                                              e.preventDefault();
+                                              if (dragOverIndex !== idx) setDragOverIndex(idx);
+                                            }}
+                                            onDragEnd={() => {
+                                              setDraggedItem(null);
+                                              setDragOverIndex(null);
+                                            }}
+                                            onDrop={(e) => {
+                                              e.preventDefault();
+                                              if (!draggedItem || draggedItem.modName !== modName || draggedItem.index === idx) {
+                                                setDraggedItem(null);
+                                                setDragOverIndex(null);
+                                                return;
+                                              }
+                                              const reordered = [...combinedItems];
+                                              const [moved] = reordered.splice(draggedItem.index, 1);
+                                              reordered.splice(idx, 0, moved);
+                                              setDraggedItem(null);
+                                              setDragOverIndex(null);
+                                              handleReorderItems(modName, reordered);
+                                            }}
+                                            className={`p-3.5 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all ${
+                                              isDragOver ? 'ring-2 ring-primary dark:ring-yellow-400 scale-[1.01]' : ''
+                                            } ${
+                                              isPreTest
+                                                ? 'bg-amber-500/10 border-amber-300 dark:border-amber-700/60 text-slate-800 dark:text-slate-100'
+                                                : 'bg-blue-500/10 border-blue-300 dark:border-blue-700/60 text-slate-800 dark:text-slate-100'
+                                            }`}
                                           >
-                                            <span className={`w-2 h-2 rounded-full ${mod.visibility === 'public' ? 'bg-emerald-500' : 'bg-blue-500'}`}></span>
-                                            <span className="text-slate-600 dark:text-slate-300">
-                                              {mod.visibility === 'public' ? 'Publik' : 'LMS Member'}
-                                            </span>
-                                          </button>
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                              {/* Drag Handle & Up/Down Arrows */}
+                                              <div className="flex items-center gap-1 shrink-0">
+                                                <div 
+                                                  className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 flex items-center justify-center rounded" 
+                                                  title="Geser untuk ubah urutan"
+                                                >
+                                                  <span className="material-symbols-outlined text-lg">drag_indicator</span>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <button
+                                                    type="button"
+                                                    disabled={idx === 0}
+                                                    onClick={() => moveItem(modName, combinedItems, idx, -1)}
+                                                    className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300 cursor-pointer"
+                                                    title="Geser ke Atas"
+                                                  >
+                                                    <span className="material-symbols-outlined text-xs">arrow_upward</span>
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    disabled={idx === combinedItems.length - 1}
+                                                    onClick={() => moveItem(modName, combinedItems, idx, 1)}
+                                                    className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300 cursor-pointer"
+                                                    title="Geser ke Bawah"
+                                                  >
+                                                    <span className="material-symbols-outlined text-xs">arrow_downward</span>
+                                                  </button>
+                                                </div>
+                                              </div>
 
-                                          {/* Edit & Delete */}
-                                          <div className="flex items-center gap-1">
-                                            <button
-                                              type="button"
-                                              onClick={() => openFormForEdit(mod)}
-                                              className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                              title="Edit Materi"
-                                            >
-                                              <span className="material-symbols-outlined text-base">edit</span>
-                                            </button>
-                                            {user.role === 'admin' && (
+                                              {/* Urutan Badge */}
+                                              <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                                                #{idx + 1}
+                                              </div>
+
+                                              {/* Icon */}
+                                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                                                isPreTest ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
+                                              }`}>
+                                                <span className="material-symbols-outlined text-xl">
+                                                  {isPreTest ? 'assignment_turned_in' : 'task_alt'}
+                                                </span>
+                                              </div>
+
+                                              {/* Info */}
+                                              <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                                    isPreTest 
+                                                      ? 'bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200' 
+                                                      : 'bg-blue-200/80 dark:bg-blue-900/80 text-blue-900 dark:text-blue-200'
+                                                  }`}>
+                                                    {isPreTest ? 'PRE-TEST' : 'POST-TEST (EVALUASI AKHIR)'}
+                                                  </span>
+                                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                    Aktif ✓
+                                                  </span>
+                                                </div>
+                                                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mt-0.5">
+                                                  {item.title}
+                                                </p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                                  {isPreTest 
+                                                    ? 'Evaluasi awal kemampuan siswa sebelum materi lanjutan' 
+                                                    : 'Evaluasi akhir capaian pemahaman siswa pada modul ini'}
+                                                </p>
+                                              </div>
+                                            </div>
+
+                                            {/* Right Action: Edit Quiz */}
+                                            <div className="flex items-center justify-end gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-200/40 dark:border-slate-700/40">
                                               <button
                                                 type="button"
-                                                onClick={() => handleDeleteModule(mod.id)}
-                                                className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                                title="Hapus Materi"
+                                                onClick={() => setQuizModule({ module: item.data.parentModule || repModule, initialType: item.quizType })}
+                                                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                                                  isPreTest
+                                                    ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500'
+                                                    : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+                                                }`}
                                               >
-                                                <span className="material-symbols-outlined text-base">delete</span>
+                                                <span className="material-symbols-outlined text-sm">edit_note</span>
+                                                <span>Kelola Soal {isPreTest ? 'Pre-Test' : 'Post-Test'}</span>
                                               </button>
-                                            )}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+
+                                      // Lesson (Materi) item
+                                      const mod = item.data;
+                                      return (
+                                        <div
+                                          key={`materi-${mod.id}`}
+                                          draggable
+                                          onDragStart={(e) => {
+                                            e.dataTransfer.setData('text/plain', '');
+                                            setDraggedItem({ modName, index: idx });
+                                          }}
+                                          onDragOver={(e) => {
+                                            e.preventDefault();
+                                            if (dragOverIndex !== idx) setDragOverIndex(idx);
+                                          }}
+                                          onDragEnd={() => {
+                                            setDraggedItem(null);
+                                            setDragOverIndex(null);
+                                          }}
+                                          onDrop={(e) => {
+                                            e.preventDefault();
+                                            if (!draggedItem || draggedItem.modName !== modName || draggedItem.index === idx) {
+                                              setDraggedItem(null);
+                                              setDragOverIndex(null);
+                                              return;
+                                            }
+                                            const reordered = [...combinedItems];
+                                            const [moved] = reordered.splice(draggedItem.index, 1);
+                                            reordered.splice(idx, 0, moved);
+                                            setDraggedItem(null);
+                                            setDragOverIndex(null);
+                                            handleReorderItems(modName, reordered);
+                                          }}
+                                          className={`bg-white dark:bg-slate-900/80 border rounded-lg p-3 flex flex-col md:flex-row md:items-center justify-between gap-3 hover:shadow-sm transition-all ${
+                                            isDragOver ? 'ring-2 ring-primary dark:ring-yellow-400 scale-[1.01]' : 'border-slate-200/80 dark:border-slate-700'
+                                          }`}
+                                        >
+                                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            {/* Drag Handle & Up/Down Arrows */}
+                                            <div className="flex items-center gap-1 shrink-0">
+                                              <div 
+                                                className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 flex items-center justify-center rounded" 
+                                                title="Geser untuk ubah urutan"
+                                              >
+                                                <span className="material-symbols-outlined text-lg">drag_indicator</span>
+                                              </div>
+                                              <div className="flex flex-col gap-0.5">
+                                                <button
+                                                  type="button"
+                                                  disabled={idx === 0}
+                                                  onClick={() => moveItem(modName, combinedItems, idx, -1)}
+                                                  className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300 cursor-pointer"
+                                                  title="Geser ke Atas"
+                                                >
+                                                  <span className="material-symbols-outlined text-xs">arrow_upward</span>
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  disabled={idx === combinedItems.length - 1}
+                                                  onClick={() => moveItem(modName, combinedItems, idx, 1)}
+                                                  className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-20 disabled:cursor-not-allowed text-slate-600 dark:text-slate-300 cursor-pointer"
+                                                  title="Geser ke Bawah"
+                                                >
+                                                  <span className="material-symbols-outlined text-xs">arrow_downward</span>
+                                                </button>
+                                              </div>
+                                            </div>
+
+                                            {/* Urutan Badge */}
+                                            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                                              #{idx + 1}
+                                            </div>
+
+                                            {/* Platform Icon */}
+                                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                              <span className={`material-symbols-outlined text-lg ${
+                                                mod.media_platform === 'youtube' ? 'text-red-500' :
+                                                mod.media_platform === 'gdrive_pdf' ? 'text-rose-600' :
+                                                mod.media_platform === 'tiktok' ? 'text-slate-900 dark:text-white' : 'text-purple-500'
+                                              }`}>
+                                                {mod.media_platform === 'youtube' ? 'smart_display' :
+                                                 mod.media_platform === 'gdrive_pdf' ? 'picture_as_pdf' :
+                                                 mod.media_platform === 'tiktok' ? 'movie' : 'video_library'}
+                                              </span>
+                                            </div>
+
+                                            {/* Title & Info */}
+                                            <div className="min-w-0 flex-1">
+                                              <div className="flex items-center gap-2 flex-wrap">
+                                                <span 
+                                                  className="text-sm font-bold text-slate-900 dark:text-white truncate cursor-pointer hover:text-blue-600" 
+                                                  onClick={() => openFormForEdit(mod)}
+                                                >
+                                                  {mod.title}
+                                                </span>
+                                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                                  {mod.category}
+                                                </span>
+                                              </div>
+                                              <p className="text-[11px] text-slate-400 truncate max-w-md">{mod.external_url}</p>
+                                            </div>
+                                          </div>
+
+                                          {/* Right Badges & Controls */}
+                                          <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                                            {/* Visibility Toggle */}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleToggleVisibility(mod)}
+                                              className="flex items-center gap-1.5 text-[11px] font-bold cursor-pointer"
+                                              title="Klik untuk ubah visibilitas"
+                                            >
+                                              <span className={`w-2 h-2 rounded-full ${mod.visibility === 'public' ? 'bg-emerald-500' : 'bg-blue-500'}`}></span>
+                                              <span className="text-slate-600 dark:text-slate-300">
+                                                {mod.visibility === 'public' ? 'Publik' : 'LMS Member'}
+                                              </span>
+                                            </button>
+
+                                            {/* Edit & Delete */}
+                                            <div className="flex items-center gap-1">
+                                              <button
+                                                type="button"
+                                                onClick={() => openFormForEdit(mod)}
+                                                className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                                title="Edit Materi"
+                                              >
+                                                <span className="material-symbols-outlined text-base">edit</span>
+                                              </button>
+                                              {user.role === 'admin' && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleDeleteModule(mod.id)}
+                                                  className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                                  title="Hapus Materi"
+                                                >
+                                                  <span className="material-symbols-outlined text-base">delete</span>
+                                                </button>
+                                              )}
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
-                                    </div>
-                                  </div>
-
-                                  {/* Section 3: Post-Test Modul */}
-                                  <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
-                                    hasPostTest 
-                                      ? 'bg-blue-500/10 border-blue-300 dark:border-blue-700/60 text-slate-800 dark:text-slate-100' 
-                                      : 'bg-white/60 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-700 text-slate-500'
-                                  }`}>
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                                        hasPostTest ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
-                                      }`}>
-                                        <span className="material-symbols-outlined text-xl">task_alt</span>
-                                      </div>
-                                      <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
-                                            Section 3: Post-Test Modul (Evaluasi Akhir)
-                                          </span>
-                                          {hasPostTest && (
-                                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-200/80 dark:bg-blue-900/80 text-blue-900 dark:text-blue-200">
-                                              Aktif ✓
-                                            </span>
-                                          )}
-                                        </div>
-                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
-                                          {hasPostTest ? `Kuis Post-Test (${modName}) — Uji kompetensi siswa setelah menyelesaikan materi` : `Belum ada kuis Post-Test untuk ${modName}`}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => setQuizModule({ module: repModule, initialType: 'post_test' })}
-                                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                                        hasPostTest
-                                          ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm'
-                                          : 'bg-white dark:bg-slate-800 hover:bg-blue-50 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-blue-700 hover:border-blue-400'
-                                      }`}
-                                    >
-                                      <span className="material-symbols-outlined text-sm">{hasPostTest ? 'edit_note' : 'add'}</span>
-                                      <span>{hasPostTest ? 'Edit Soal Post-Test' : '+ Buat Post-Test'}</span>
-                                    </button>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );
