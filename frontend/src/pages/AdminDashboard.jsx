@@ -856,11 +856,14 @@ const AdminDashboard = () => {
                           <div className="space-y-5">
                             {moduleNames.map((modName, modIdx) => {
                               const materiList = moduleGroups[modName];
+                              const repModule = materiList.find(m => m.has_pre_test || m.has_post_test) || materiList[0];
+                              const hasPreTest = materiList.some(m => m.has_pre_test);
+                              const hasPostTest = materiList.some(m => m.has_post_test);
 
                               return (
-                                <div key={modName} className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl p-5 transition-all hover:border-primary/40">
+                                <div key={modName} className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-xl p-5 transition-all hover:border-primary/40 space-y-4">
                                   {/* Module Bar */}
-                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 mb-4 border-b border-slate-200/60 dark:border-slate-700/50 gap-2">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-700/50 gap-2">
                                     <div className="flex items-center gap-2">
                                       <span className="w-6 h-6 rounded-md bg-secondary/20 dark:bg-yellow-400/20 text-secondary dark:text-yellow-400 text-xs font-bold flex items-center justify-center">
                                         {modIdx + 1}
@@ -883,8 +886,59 @@ const AdminDashboard = () => {
                                     </button>
                                   </div>
 
-                                  {/* Materi Items inside this Module */}
+                                  {/* Section 1: Pre-Test Modul */}
+                                  <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                                    hasPreTest 
+                                      ? 'bg-amber-500/10 border-amber-300 dark:border-amber-700/60 text-slate-800 dark:text-slate-100' 
+                                      : 'bg-white/60 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-700 text-slate-500'
+                                  }`}>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                        hasPreTest ? 'bg-amber-500 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                                      }`}>
+                                        <span className="material-symbols-outlined text-xl">assignment_turned_in</span>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                            Section 1: Pre-Test Modul
+                                          </span>
+                                          {hasPreTest && (
+                                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200">
+                                              Aktif ✓
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                          {hasPreTest ? `Kuis Pre-Test (${modName}) — Siap dikerjakan siswa sebelum membaca materi` : `Belum ada kuis Pre-Test untuk ${modName}`}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuizModule({ module: repModule, initialType: 'pre_test' })}
+                                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                        hasPreTest
+                                          ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500 shadow-sm'
+                                          : 'bg-white dark:bg-slate-800 hover:bg-amber-50 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-amber-700 hover:border-amber-400'
+                                      }`}
+                                    >
+                                      <span className="material-symbols-outlined text-sm">{hasPreTest ? 'edit_note' : 'add'}</span>
+                                      <span>{hasPreTest ? 'Edit Soal Pre-Test' : '+ Buat Pre-Test'}</span>
+                                    </button>
+                                  </div>
+
+                                  {/* Section 2: Materi Pembelajaran */}
                                   <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between pt-1">
+                                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-sm">video_library</span>
+                                        <span>Section 2: Materi Pembelajaran ({materiList.length})</span>
+                                      </span>
+                                    </div>
+
+                                    <div className="space-y-2">
                                     {materiList.map((mod) => (
                                       <div
                                         key={mod.id}
@@ -938,37 +992,6 @@ const AdminDashboard = () => {
                                             </span>
                                           </button>
 
-                                          {/* Pre-Test & Post-Test Management */}
-                                          <div className="flex items-center gap-1.5">
-                                            <button
-                                              type="button"
-                                              onClick={() => setQuizModule({ module: mod, initialType: 'pre_test' })}
-                                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
-                                                mod.has_pre_test
-                                                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
-                                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300'
-                                              }`}
-                                              title="Kelola Pre-Test (Sebelum Membaca/Menonton Materi)"
-                                            >
-                                              <span className="material-symbols-outlined text-[15px]">assignment_turned_in</span>
-                                              <span>{mod.has_pre_test ? 'Pre-Test ✓' : '+ Pre-Test'}</span>
-                                            </button>
-
-                                            <button
-                                              type="button"
-                                              onClick={() => setQuizModule({ module: mod, initialType: 'post_test' })}
-                                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
-                                                mod.has_post_test
-                                                  ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100'
-                                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300'
-                                              }`}
-                                              title="Kelola Post-Test (Setelah Membaca/Menonton Materi)"
-                                            >
-                                              <span className="material-symbols-outlined text-[15px]">task_alt</span>
-                                              <span>{mod.has_post_test ? 'Post-Test ✓' : '+ Post-Test'}</span>
-                                            </button>
-                                          </div>
-
                                           {/* Edit & Delete */}
                                           <div className="flex items-center gap-1">
                                             <button
@@ -993,6 +1016,50 @@ const AdminDashboard = () => {
                                         </div>
                                       </div>
                                     ))}
+                                    </div>
+                                  </div>
+
+                                  {/* Section 3: Post-Test Modul */}
+                                  <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                                    hasPostTest 
+                                      ? 'bg-blue-500/10 border-blue-300 dark:border-blue-700/60 text-slate-800 dark:text-slate-100' 
+                                      : 'bg-white/60 dark:bg-slate-900/40 border-dashed border-slate-300 dark:border-slate-700 text-slate-500'
+                                  }`}>
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                                        hasPostTest ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                                      }`}>
+                                        <span className="material-symbols-outlined text-xl">task_alt</span>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                                            Section 3: Post-Test Modul (Evaluasi Akhir)
+                                          </span>
+                                          {hasPostTest && (
+                                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-200/80 dark:bg-blue-900/80 text-blue-900 dark:text-blue-200">
+                                              Aktif ✓
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+                                          {hasPostTest ? `Kuis Post-Test (${modName}) — Uji kompetensi siswa setelah menyelesaikan materi` : `Belum ada kuis Post-Test untuk ${modName}`}
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setQuizModule({ module: repModule, initialType: 'post_test' })}
+                                      className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                                        hasPostTest
+                                          ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-sm'
+                                          : 'bg-white dark:bg-slate-800 hover:bg-blue-50 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-blue-700 hover:border-blue-400'
+                                      }`}
+                                    >
+                                      <span className="material-symbols-outlined text-sm">{hasPostTest ? 'edit_note' : 'add'}</span>
+                                      <span>{hasPostTest ? 'Edit Soal Post-Test' : '+ Buat Post-Test'}</span>
+                                    </button>
                                   </div>
                                 </div>
                               );

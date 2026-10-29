@@ -21,7 +21,7 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
             setActiveQuiz({ 
               type: initialType, 
               id: existing?.id || null, 
-              title: existing?.title || `${initialType === 'pre_test' ? 'Pre-Test' : 'Post-Test'}: ${module.title}` 
+              title: existing?.title || `${initialType === 'pre_test' ? 'Pre-Test' : 'Post-Test'}: ${module.module_name || module.title}` 
             });
             if (existing) {
               fetchQuestions(existing.id);
@@ -60,7 +60,7 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
 
   const startEditing = (type) => {
     const existing = quizzes.find(q => q.type === type);
-    setActiveQuiz({ type, id: existing?.id || null, title: existing?.title || `${type === 'pre_test' ? 'Pre-Test' : 'Post-Test'}: ${module.title}` });
+    setActiveQuiz({ type, id: existing?.id || null, title: existing?.title || `${type === 'pre_test' ? 'Pre-Test' : 'Post-Test'}: ${module.module_name || module.title}` });
     if (existing) {
       fetchQuestions(existing.id);
     } else {
