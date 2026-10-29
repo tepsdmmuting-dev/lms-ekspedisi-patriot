@@ -42,8 +42,11 @@ const MemberDashboard = () => {
     return url;
   };
 
-  const isEmbeddable = (url) => {
+  const isEmbeddable = (mod) => {
+    const url = typeof mod === 'string' ? mod : mod?.external_url;
+    const platform = typeof mod === 'object' ? mod?.media_platform : null;
     if (!url) return false;
+    if (platform === 'local_video' || url.startsWith('/uploads/') || url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mkv')) return true;
     return !!(
       url.match(/(?:youtu\.be\/|youtube\.com\/)/) ||
       url.match(/tiktok\.com\/.*?\/video\/\d+/) ||
@@ -54,7 +57,7 @@ const MemberDashboard = () => {
   };
 
   const handleMediaClick = (mod) => {
-    if (isEmbeddable(mod.external_url)) {
+    if (isEmbeddable(mod)) {
       setPlayingVideo(mod);
     } else {
       window.open(mod.media_platform === 'gdrive_pdf' ? formatGdriveDownload(mod.external_url) : mod.external_url, '_blank');
@@ -156,6 +159,7 @@ const MemberDashboard = () => {
 
   const getMediaIcon = (platform) => {
     switch (platform) {
+      case 'local_video': return 'video_file';
       case 'youtube': return 'smart_display';
       case 'tiktok': return 'movie';
       case 'instagram': return 'video_library';
@@ -714,6 +718,7 @@ const MemberDashboard = () => {
                                                       ) : null}
                                                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
                                                       <span className={`material-symbols-outlined text-2xl z-10 drop-shadow-md ${
+                                                        mod.media_platform === 'local_video' ? 'text-emerald-500' :
                                                         mod.media_platform === 'youtube' ? 'text-red-500' :
                                                         mod.media_platform === 'gdrive_pdf' ? 'text-rose-500' : 'text-white'
                                                       }`}>
@@ -723,8 +728,12 @@ const MemberDashboard = () => {
 
                                                     <div className="flex-1 min-w-0">
                                                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                                        <span className="text-[10px] font-bold text-secondary dark:text-yellow-400 uppercase tracking-widest bg-secondary/10 dark:bg-yellow-400/10 px-2 py-0.5 rounded-full">
-                                                          {mod.media_platform}
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                                          mod.media_platform === 'local_video'
+                                                            ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60'
+                                                            : 'text-secondary dark:text-yellow-400 bg-secondary/10 dark:bg-yellow-400/10'
+                                                        }`}>
+                                                          {mod.media_platform === 'local_video' ? 'MP4 Lokal (Offline)' : mod.media_platform}
                                                         </span>
                                                         <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
                                                           {mod.category}
@@ -823,13 +832,25 @@ const MemberDashboard = () => {
             
             {/* Video Player */}
             <div className="w-full bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/20 aspect-video relative">
-              <iframe
-                src={getEmbedUrl(playingVideo.external_url)}
-                className="w-full h-full absolute inset-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
-              ></iframe>
+              {playingVideo.media_platform === 'local_video' || playingVideo.external_url?.endsWith('.mp4') || playingVideo.external_url?.startsWith('/uploads/') ? (
+                <video
+                  src={playingVideo.external_url}
+                  controls
+                  autoPlay
+                  controlsList="nodownload"
+                  className="w-full h-full absolute inset-0 object-contain bg-black"
+                >
+                  Browser Anda tidak mendukung pemutar video HTML5.
+                </video>
+              ) : (
+                <iframe
+                  src={getEmbedUrl(playingVideo.external_url)}
+                  className="w-full h-full absolute inset-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
+                ></iframe>
+              )}
             </div>
 
             {/* Title & Description Container */}

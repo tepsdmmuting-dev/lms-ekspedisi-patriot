@@ -35,6 +35,60 @@ const AdminDashboard = () => {
     title: '', description: '', media_platform: 'youtube', external_url: '', category: 'Pelatihan', topic: 'IT', module_name: 'Modul 1', order_index: 1, visibility: 'restricted', image_url: '', image_source: ''
   });
 
+  // Local Video Upload & Storage state (Offline Support)
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [localVideosList, setLocalVideosList] = useState([]);
+
+  const fetchLocalVideos = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload/videos', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLocalVideosList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch local videos', err);
+    }
+  };
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingVideo(true);
+    const uploadData = new FormData();
+    uploadData.append('video', file);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload/video', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFormData(prev => ({
+          ...prev,
+          media_platform: 'local_video',
+          external_url: data.url,
+          title: prev.title ? prev.title : file.name.replace(/\.[^/.]+$/, "")
+        }));
+        fetchLocalVideos();
+      } else {
+        alert(data.msg || 'Gagal mengunggah video');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan jaringan saat mengunggah video');
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
   // Drag-and-drop & Reordering state for curriculum items
   const [draggedItem, setDraggedItem] = useState(null); // { modName, index }
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -143,6 +197,7 @@ const AdminDashboard = () => {
     };
     fetchModules();
     fetchTopics();
+    fetchLocalVideos();
   }, []);
 
   const handleLogout = () => {
@@ -248,6 +303,7 @@ const AdminDashboard = () => {
       image_url: '',
       image_source: ''
     });
+    fetchLocalVideos();
     setShowForm(true);
   };
 
@@ -278,6 +334,7 @@ const AdminDashboard = () => {
       image_url: mod.image_url || '',
       image_source: mod.image_source || ''
     });
+    fetchLocalVideos();
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -558,34 +615,154 @@ const AdminDashboard = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">External URL</label>
-                            <input required type="url" value={formData.external_url} onChange={e => setFormData({...formData, external_url: e.target.value})} className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all" placeholder="https://..." />
+                            <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Media Platform</label>
+                            <select 
+                              value={formData.media_platform} 
+                              onChange={e => setFormData({...formData, media_platform: e.target.value})} 
+                              className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all appearance-none font-semibold"
+                            >
+                                <option value="youtube">YouTube (Online)</option>
+                                <option value="local_video">📁 Video Lokal MP4 (Offline)</option>
+                                <option value="gdrive_pdf">Google Drive (PDF)</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="instagram">Instagram</option>
+                            </select>
                         </div>
                     </div>
+
+                    {/* Media Source: Dynamic based on Media Platform */}
+                    <div>
+                      {formData.media_platform === 'local_video' ? (
+                        <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-base">video_file</span>
+                              <span>File Video MP4 Lokal (Server Offline)</span>
+                            </label>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-200/80 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-200">
+                              Mode Offline
+                            </span>
+                          </div>
+
+                          {/* Quick Picker from existing files in uploads/videos */}
+                          {localVideosList.length > 0 && (
+                            <div>
+                              <label className="block text-[11px] text-slate-600 dark:text-slate-300 font-medium mb-1">
+                                Pilih dari file video yang sudah ada di server:
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={formData.external_url}
+                                  onChange={e => {
+                                    if (e.target.value) {
+                                      const chosen = localVideosList.find(v => v.url === e.target.value);
+                                      setFormData({
+                                        ...formData,
+                                        external_url: e.target.value,
+                                        title: formData.title || (chosen ? chosen.filename.replace(/\.[^/.]+$/, "") : '')
+                                      });
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs outline-none"
+                                >
+                                  <option value="">-- Pilih video di folder uploads/videos --</option>
+                                  {localVideosList.map(v => (
+                                    <option key={v.filename} value={v.url}>
+                                      {v.filename} ({(v.size / (1024 * 1024)).toFixed(1)} MB)
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={fetchLocalVideos}
+                                  className="p-2 text-slate-600 dark:text-slate-300 hover:text-emerald-600 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
+                                  title="Segarkan daftar video"
+                                >
+                                  <span className="material-symbols-outlined text-sm">refresh</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Upload new video file */}
+                          <div>
+                            <label className="block text-[11px] text-slate-600 dark:text-slate-300 font-medium mb-1">
+                              Atau unggah file MP4 baru dari laptop/flashdisk:
+                            </label>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                              <input
+                                type="text"
+                                required
+                                value={formData.external_url}
+                                onChange={e => setFormData({ ...formData, external_url: e.target.value })}
+                                className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-mono outline-none"
+                                placeholder="/uploads/videos/nama_video.mp4"
+                              />
+                              <label className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-sm ${
+                                isUploadingVideo
+                                  ? 'bg-slate-400 text-white cursor-not-allowed'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              }`}>
+                                <span className="material-symbols-outlined text-base">
+                                  {isUploadingVideo ? 'hourglass_top' : 'upload_file'}
+                                </span>
+                                <span>{isUploadingVideo ? 'Mengunggah...' : 'Pilih File MP4'}</span>
+                                <input
+                                  type="file"
+                                  accept="video/mp4,video/webm,video/m4v,video/mkv"
+                                  disabled={isUploadingVideo}
+                                  onChange={handleVideoUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Local Video Preview */}
+                          {formData.external_url && (
+                            <div className="pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40">
+                              <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                                Pratinjau Video Lokal:
+                              </p>
+                              <div className="w-full max-h-52 bg-black rounded-xl overflow-hidden flex items-center justify-center border border-slate-700">
+                                <video
+                                  key={formData.external_url}
+                                  src={formData.external_url}
+                                  controls
+                                  className="max-h-48 w-auto object-contain"
+                                >
+                                  Format video tidak didukung browser.
+                                </video>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">
+                            URL Materi (Link Video / Dokumen)
+                          </label>
+                          <input
+                            required
+                            type="text"
+                            value={formData.external_url}
+                            onChange={e => setFormData({ ...formData, external_url: e.target.value })}
+                            className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                          />
+                        </div>
+                      )}
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Cover Image URL (Optional)</label>
                             <div className="flex gap-2 w-full">
-                              <input type="url" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} className="flex-1 w-full min-w-0 px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all" placeholder="https://..." />
+                              <input type="text" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} className="flex-1 w-full min-w-0 px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all" placeholder="https://..." />
                               <div className="shrink-0">
                                 <CloudinaryUpload onUploadSuccess={(url) => setFormData({...formData, image_url: url})} buttonText="Unggah" />
                               </div>
                             </div>
-                        </div>
-                        <div>
-                            <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Sumber Foto / Kredit</label>
-                            <input type="text" value={formData.image_source || ''} onChange={e => setFormData({...formData, image_source: e.target.value})} className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all" placeholder="Misal: Pexels / Budi" />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Media Platform</label>
-                            <select value={formData.media_platform} onChange={e => setFormData({...formData, media_platform: e.target.value})} className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all appearance-none">
-                                <option value="youtube">YouTube</option>
-                                <option value="tiktok">TikTok</option>
-                                <option value="instagram">Instagram</option>
-                                <option value="gdrive_pdf">Google Drive (PDF)</option>
-                            </select>
                         </div>
                         <div>
                             <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">Visibility</label>
@@ -1215,11 +1392,13 @@ const AdminDashboard = () => {
                                             {/* Platform Icon */}
                                             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                               <span className={`material-symbols-outlined text-lg ${
+                                                mod.media_platform === 'local_video' ? 'text-emerald-500' :
                                                 mod.media_platform === 'youtube' ? 'text-red-500' :
                                                 mod.media_platform === 'gdrive_pdf' ? 'text-rose-600' :
                                                 mod.media_platform === 'tiktok' ? 'text-slate-900 dark:text-white' : 'text-purple-500'
                                               }`}>
-                                                {mod.media_platform === 'youtube' ? 'smart_display' :
+                                                {mod.media_platform === 'local_video' ? 'video_file' :
+                                                 mod.media_platform === 'youtube' ? 'smart_display' :
                                                  mod.media_platform === 'gdrive_pdf' ? 'picture_as_pdf' :
                                                  mod.media_platform === 'tiktok' ? 'movie' : 'video_library'}
                                               </span>
@@ -1234,8 +1413,12 @@ const AdminDashboard = () => {
                                                 >
                                                   {mod.title}
                                                 </span>
-                                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                                                  {mod.category}
+                                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                                  mod.media_platform === 'local_video'
+                                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold'
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                                }`}>
+                                                  {mod.media_platform === 'local_video' ? 'MP4 Lokal' : mod.category}
                                                 </span>
                                               </div>
                                               <p className="text-[11px] text-slate-400 truncate max-w-md">{mod.external_url}</p>

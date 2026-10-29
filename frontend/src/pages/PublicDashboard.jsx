@@ -346,6 +346,7 @@ const PublicDashboard = () => {
 
   const getMediaIcon = (platform) => {
     switch (platform) {
+      case 'local_video': return 'video_file';
       case 'youtube': return 'smart_display';
       case 'tiktok': return 'movie';
       case 'instagram': return 'video_library';
@@ -941,14 +942,27 @@ const PublicDashboard = () => {
 
             {/* Video Player Container */}
             <div className="w-full bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/20 aspect-video relative">
-              <iframe
-                key={previewIframeKey}
-                src={getEmbedUrl(previewModal.external_url, true)}
-                className="w-full h-full absolute inset-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
-              ></iframe>
+              {previewModal.media_platform === 'local_video' || previewModal.external_url?.endsWith('.mp4') || previewModal.external_url?.startsWith('/uploads/') ? (
+                <video
+                  key={previewIframeKey}
+                  src={previewModal.external_url}
+                  controls
+                  autoPlay
+                  controlsList="nodownload"
+                  className="w-full h-full absolute inset-0 object-contain bg-black"
+                >
+                  Browser Anda tidak mendukung pemutar video HTML5.
+                </video>
+              ) : (
+                <iframe
+                  key={previewIframeKey}
+                  src={getEmbedUrl(previewModal.external_url, true)}
+                  className="w-full h-full absolute inset-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
+                ></iframe>
+              )}
 
               {/* 15-Second Limit Overlay when time is up */}
               {previewEnded && (
