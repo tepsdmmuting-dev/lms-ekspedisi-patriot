@@ -112,12 +112,40 @@ const MemberDashboard = () => {
   };
 
   const openQuiz = async (quizMeta) => {
-    const res = await fetch(`/api/quizzes/${quizMeta.id}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setActiveQuiz(data);
+    try {
+      const res = await fetch(`/api/quizzes/${quizMeta.id}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveQuiz(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openQuizByType = async (moduleId, type) => {
+    try {
+      const existing = moduleQuizzes[moduleId]?.find(q => q.type === type);
+      if (existing) {
+        return openQuiz(existing);
+      }
+      const res = await fetch(`/api/quizzes/module/${moduleId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const list = await res.json();
+        setModuleQuizzes(prev => ({ ...prev, [moduleId]: list }));
+        const match = list.find(q => q.type === type);
+        if (match) {
+          openQuiz(match);
+        } else {
+          alert(`Soal ${type === 'pre_test' ? 'Pre-Test' : 'Post-Test'} belum tersedia untuk materi ini.`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -608,27 +636,50 @@ const MemberDashboard = () => {
 
                                           {/* Right Actions & Quizzes */}
                                           <div className="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700/50">
-                                            {/* Quiz Buttons */}
-                                            {(moduleQuizzes[mod.id] && moduleQuizzes[mod.id].length > 0) && (
-                                              <div className="flex items-center gap-1.5">
-                                                {moduleQuizzes[mod.id].map(q => (
+                                            {/* Pre-Test & Post-Test Quiz Buttons */}
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                              {(mod.has_pre_test || moduleQuizzes[mod.id]?.some(q => q.type === 'pre_test')) && (() => {
+                                                const q = moduleQuizzes[mod.id]?.find(item => item.type === 'pre_test');
+                                                return (
                                                   <button
-                                                    key={q.id}
+                                                    key="pre_test"
                                                     type="button"
-                                                    onClick={() => openQuiz(q)}
-                                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
-                                                      q.type === 'pre_test'
-                                                        ? 'border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100'
-                                                        : 'border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100'
-                                                    }`}
+                                                    onClick={() => q ? openQuiz(q) : openQuizByType(mod.id, 'pre_test')}
+                                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 shadow-xs"
+                                                    title="Kerjakan Pre-Test sebelum materi"
                                                   >
-                                                    <span className="material-symbols-outlined text-sm">quiz</span>
-                                                    <span>{q.type === 'pre_test' ? 'Pre-Test' : 'Post-Test'}</span>
-                                                    {q.my_score !== null && <span className="font-extrabold text-[10px]">({q.my_score})</span>}
+                                                    <span className="material-symbols-outlined text-[15px]">assignment_turned_in</span>
+                                                    <span>Pre-Test</span>
+                                                    {q && q.my_score !== null && q.my_score !== undefined && (
+                                                      <span className="font-extrabold text-[10px] bg-amber-200 dark:bg-amber-900/60 px-1.5 py-0.2 rounded-md">
+                                                        {q.my_score}
+                                                      </span>
+                                                    )}
                                                   </button>
-                                                ))}
-                                              </div>
-                                            )}
+                                                );
+                                              })()}
+
+                                              {(mod.has_post_test || moduleQuizzes[mod.id]?.some(q => q.type === 'post_test')) && (() => {
+                                                const q = moduleQuizzes[mod.id]?.find(item => item.type === 'post_test');
+                                                return (
+                                                  <button
+                                                    key="post_test"
+                                                    type="button"
+                                                    onClick={() => q ? openQuiz(q) : openQuizByType(mod.id, 'post_test')}
+                                                    className="px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 shadow-xs"
+                                                    title="Kerjakan Post-Test setelah materi"
+                                                  >
+                                                    <span className="material-symbols-outlined text-[15px]">task_alt</span>
+                                                    <span>Post-Test</span>
+                                                    {q && q.my_score !== null && q.my_score !== undefined && (
+                                                      <span className="font-extrabold text-[10px] bg-blue-200 dark:bg-blue-900/60 px-1.5 py-0.2 rounded-md">
+                                                        {q.my_score}
+                                                      </span>
+                                                    )}
+                                                  </button>
+                                                );
+                                              })()}
+                                            </div>
 
                                             {/* Play/View Button */}
                                             <button

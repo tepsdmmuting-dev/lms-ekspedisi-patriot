@@ -367,7 +367,13 @@ const AdminDashboard = () => {
             )}
           </header>
 
-          {quizModule && <QuizBuilder module={quizModule} onClose={() => { setQuizModule(null); fetchModules(); }} />}
+          {quizModule && (
+            <QuizBuilder 
+              module={quizModule.module || quizModule} 
+              initialType={quizModule.initialType || null}
+              onClose={() => { setQuizModule(null); fetchModules(); }} 
+            />
+          )}
 
           {showForm && createPortal(
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-slate-900/60 backdrop-blur-md overflow-y-auto transition-colors duration-500">
@@ -932,20 +938,36 @@ const AdminDashboard = () => {
                                             </span>
                                           </button>
 
-                                          {/* Quiz Builder Button */}
-                                          <button
-                                            type="button"
-                                            onClick={() => setQuizModule(mod)}
-                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
-                                              mod.has_pre_test || mod.has_post_test
-                                                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300'
-                                                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-                                            }`}
-                                            title="Kelola Pre-Test & Post-Test"
-                                          >
-                                            <span className="material-symbols-outlined text-sm">quiz</span>
-                                            <span>{mod.has_pre_test || mod.has_post_test ? 'Kuis Aktif' : '+ Kuis'}</span>
-                                          </button>
+                                          {/* Pre-Test & Post-Test Management */}
+                                          <div className="flex items-center gap-1.5">
+                                            <button
+                                              type="button"
+                                              onClick={() => setQuizModule({ module: mod, initialType: 'pre_test' })}
+                                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
+                                                mod.has_pre_test
+                                                  ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-100'
+                                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300'
+                                              }`}
+                                              title="Kelola Pre-Test (Sebelum Membaca/Menonton Materi)"
+                                            >
+                                              <span className="material-symbols-outlined text-[15px]">assignment_turned_in</span>
+                                              <span>{mod.has_pre_test ? 'Pre-Test ✓' : '+ Pre-Test'}</span>
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() => setQuizModule({ module: mod, initialType: 'post_test' })}
+                                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
+                                                mod.has_post_test
+                                                  ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100'
+                                                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300'
+                                              }`}
+                                              title="Kelola Post-Test (Setelah Membaca/Menonton Materi)"
+                                            >
+                                              <span className="material-symbols-outlined text-[15px]">task_alt</span>
+                                              <span>{mod.has_post_test ? 'Post-Test ✓' : '+ Post-Test'}</span>
+                                            </button>
+                                          </div>
 
                                           {/* Edit & Delete */}
                                           <div className="flex items-center gap-1">

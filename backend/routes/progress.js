@@ -27,7 +27,10 @@ router.get('/:userId', authMiddleware, async (req, res) => {
     if (assignedTopics.length > 0) {
       // User has specific assigned topics: filter by those topics
       query = `
-        SELECT m.*, pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
+        SELECT m.*, 
+          EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'pre_test') as has_pre_test,
+          EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test,
+          pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
         FROM modules m
         LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1
         WHERE m.topic = ANY($2::varchar[])
@@ -37,7 +40,10 @@ router.get('/:userId', authMiddleware, async (req, res) => {
     } else {
       // User has NO specific restrictions: show all modules so dashboard is NEVER empty!
       query = `
-        SELECT m.*, pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
+        SELECT m.*, 
+          EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'pre_test') as has_pre_test,
+          EXISTS(SELECT 1 FROM quizzes q WHERE q.module_id = m.id AND q.type = 'post_test') as has_post_test,
+          pt.completed, pt.progress_percentage, pt.completed_at, pt.last_accessed_at 
         FROM modules m
         LEFT JOIN progress_tracking pt ON m.id = pt.module_id AND pt.user_id = $1
         ORDER BY COALESCE(m.topic, 'Lainnya') ASC, m.module_name ASC, m.order_index ASC, m.id ASC

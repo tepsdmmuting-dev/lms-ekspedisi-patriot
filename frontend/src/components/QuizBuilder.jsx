@@ -2,14 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 // Quiz Builder for a single module
-const QuizBuilder = ({ module, onClose }) => {
+const QuizBuilder = ({ module, onClose, initialType = null }) => {
   const [quizzes, setQuizzes] = useState([]);
   const [activeQuiz, setActiveQuiz] = useState(null); // { type: 'pre_test'|'post_test', id: null|number }
   const [questions, setQuestions] = useState([]); // [ { question_text, options: ['A','B','C','D'], correct_answer_index: 0 } ]
 
   useEffect(() => {
-    fetchQuizzes();
-  }, []);
+    const init = async () => {
+      try {
+        const res = await fetch(`/api/quizzes/module/${module.id}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setQuizzes(data);
+          if (initialType) {
+            const existing = data.find(q => q.type === initialType);
+            setActiveQuiz({ 
+              type: initialType, 
+              id: existing?.id || null, 
+              title: existing?.title || `${initialType === 'pre_test' ? 'Pre-Test' : 'Post-Test'}: ${module.title}` 
+            });
+            if (existing) {
+              fetchQuestions(existing.id);
+            } else {
+              setQuestions([{ question_text: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    init();
+  }, [module.id, initialType]);
+
+  const fetchQuizzes = async () => {
+    const res = await fetch(`/api/quizzes/module/${module.id}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (res.ok) setQuizzes(await res.json());
+  };
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -24,13 +57,6 @@ const QuizBuilder = ({ module, onClose }) => {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [activeQuiz, onClose]);
-
-  const fetchQuizzes = async () => {
-    const res = await fetch(`/api/quizzes/module/${module.id}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    if (res.ok) setQuizzes(await res.json());
-  };
 
   const startEditing = (type) => {
     const existing = quizzes.find(q => q.type === type);
@@ -130,9 +156,19 @@ const QuizBuilder = ({ module, onClose }) => {
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-white/60 dark:border-slate-700">
           <div>
-            <h2 className="font-headline-sm text-primary dark:text-white transition-colors duration-500">Manage Quizzes</h2>
+            <h2 className="font-headline-sm text-primary dark:text-white transition-colors duration-500">
+              {activeQuiz ? `Kelola ${quizTypeLabel(activeQuiz.type)}` : 'Kelola Kuis (Pre-Test & Post-Test)'}
+            </h2>
             <p className="text-sm text-on-surface-variant dark:text-slate-400 mt-1">{module.title}</p>
           </div>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 transition-colors cursor-pointer"
+            title="Tutup"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
