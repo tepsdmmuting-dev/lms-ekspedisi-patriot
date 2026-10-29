@@ -8,10 +8,14 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // Ensure directories exist
 const videoDir = path.join(__dirname, '../uploads/videos');
 const docDir = path.join(__dirname, '../uploads/documents');
-const imageDir = path.join(__dirname, '../uploads/images');
-if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
-if (!fs.existsSync(docDir)) fs.mkdirSync(docDir, { recursive: true });
-if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir, { recursive: true });
+try {
+  if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
+  if (!fs.existsSync(docDir)) fs.mkdirSync(docDir, { recursive: true });
+  if (!fs.existsSync(imageDir)) fs.mkdirSync(imageDir, { recursive: true });
+} catch (fsErr) {
+  // Read-only filesystem in serverless environments like Vercel
+  console.log('Skipping upload directory creation on serverless environment');
+}
 
 // Storage configuration for videos
 const videoStorage = multer.diskStorage({
