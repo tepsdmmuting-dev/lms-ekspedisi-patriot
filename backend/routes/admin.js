@@ -180,4 +180,184 @@ router.delete('/users/:id', [authMiddleware, adminMiddleware], async (req, res) 
   }
 });
 
+// @route   GET api/admin/curriculum/export
+// @desc    Export all curriculum (modules, quizzes, questions) to portable JSON
+// @access  Private (Admin)
+router.get('/curriculum/export', [authMiddleware, adminMiddleware], async (req, res) => {
+  try {
+    const modulesRes = await db.query('SELECT * FROM modules ORDER BY topic, module_name, order_index, id');
+    const quizzesRes = await db.query('SELECT * FROM quizzes ORDER BY module_id, type, order_index');
+    const questionsRes = await db.query('SELECT * FROM quiz_questions ORDER BY quiz_id, id');
+
+    const curriculumData = {
+      export_version: '1.0',
+      exported_at: new Date().toISOString(),
+      platform: 'Ekspedisi Patriot LMS',
+      modules: modulesRes.rows,
+      quizzes: quizzesRes.rows,
+      quiz_questions: questionsRes.rows
+    };
+
+    res.setHeader('Content-Disposition', `attachment; filename="lms_patriot_curriculum_${Date.now()}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(curriculumData, null, 2));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/admin/curriculum/import
+// @desc    Import curriculum package JSON from flashdisk / local file
+// @access  Private (Admin)
+router.post('/curriculum/import', [authMiddleware, adminMiddleware], async (req, res) => {
+  const { modules, quizzes, quiz_questions } = req.body;
+  if (!Array.isArray(modules)) {
+    return res.status(400).json({ msg: 'Format file paket kurikulum tidak valid.' });
+  }
+
+  const client = db.pool ? await db.pool.connect() : null;
+  try {
+    if (client) await client.query('BEGIN');
+
+    const moduleIdMap = new Map(); // oldId -> newId
+    const queryFn = client ? client.query.bind(client) : db.query.bind(db);
+
+    // 1. Import Modules
+    for (const mod of modules) {
+      const existing = await queryFn(
+        'SELECT id FROM modules WHERE topic = $1 AND module_name = $2 AND title = $3',
+        [mod.topic, mod.module_name, mod.title]
+      );
+
+      let targetId;
+      if (existing.rows.length > 0) {
+        targetId = existing.rows[0].id;
+        await queryFn(
+          `UPDATE modules 
+           SET description = $1, media_platform = $2, external_url = $3, category = $4,
+               visibility = $5, image_url = $6, image_source = $7, order_index = $8, updated_at = CURRENT_TIMESTAMP
+           WHERE id = $9`,
+          [
+            mod.description, mod.media_platform, mod.external_url, mod.category,
+            mod.visibility || 'restricted', mod.image_url, mod.image_source, mod.order_index || 1, targetId
+          ]
+        );
+      } else {
+        const ins = await queryFn(
+          `INSERT INTO modules (title, description, media_platform, external_url, category, topic, visibility, image_url, image_source, module_name, order_index)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+          [
+            mod.title, mod.description, mod.media_platform, mod.external_url, mod.category,
+            mod.topic, mod.visibility || 'restricted', mod.image_url, mod.image_source,
+            mod.module_name || 'Modul 1', mod.order_index || 1
+          ]
+        );
+        targetId = ins.rows[0].id;
+      }
+      moduleIdMap.set(mod.id, targetId);
+    }
+
+    // 2. Import Quizzes
+    const quizIdMap = new Map(); // oldQuizId -> newQuizId
+    if (Array.isArray(quizzes)) {
+      for (const q of quizzes) {
+        const newModuleId = moduleIdMap.get(q.module_id) || q.module_id;
+        const existingQuiz = await queryFn(
+          'SELECT id FROM quizzes WHERE module_id = $1 AND type = $2',
+          [newModuleId, q.type]
+        );
+
+        let targetQuizId;
+        if (existingQuiz.rows.length > 0) {
+          targetQuizId = existingQuiz.rows[0].id;
+          await queryFn(
+            'UPDATE quizzes SET title = $1, order_index = $2 WHERE id = $3',
+            [q.title, q.order_index || (q.type === 'pre_test' ? 0 : 999), targetQuizId]
+          );
+        } else {
+          const insQuiz = await queryFn(
+            'INSERT INTO quizzes (module_id, title, type, order_index) VALUES ($1, $2, $3, $4) RETURNING id',
+            [newModuleId, q.title, q.type, q.order_index || (q.type === 'pre_test' ? 0 : 999)]
+          );
+          targetQuizId = insQuiz.rows[0].id;
+        }
+        quizIdMap.set(q.id, targetQuizId);
+      }
+    }
+
+    // 3. Import Quiz Questions
+    if (Array.isArray(quiz_questions)) {
+      for (const ques of quiz_questions) {
+        const newQuizId = quizIdMap.get(ques.quiz_id);
+        if (!newQuizId) continue;
+
+        // Check if question already exists in this quiz
+        const existingQues = await queryFn(
+          'SELECT id FROM quiz_questions WHERE quiz_id = $1 AND question_text = $2',
+          [newQuizId, ques.question_text]
+        );
+
+        if (existingQues.rows.length > 0) {
+          await queryFn(
+            'UPDATE quiz_questions SET options = $1, correct_answer_index = $2 WHERE id = $3',
+            [JSON.stringify(ques.options), ques.correct_answer_index, existingQues.rows[0].id]
+          );
+        } else {
+          await queryFn(
+            'INSERT INTO quiz_questions (quiz_id, question_text, options, correct_answer_index) VALUES ($1, $2, $3, $4)',
+            [newQuizId, ques.question_text, JSON.stringify(ques.options), ques.correct_answer_index]
+          );
+        }
+      }
+    }
+
+    if (client) await client.query('COMMIT');
+    res.json({
+      msg: 'Paket Kurikulum berhasil diimpor ke server lokal!',
+      importedModulesCount: modules.length,
+      importedQuizzesCount: (quizzes || []).length
+    });
+  } catch (err) {
+    if (client) await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ msg: `Gagal mengimpor kurikulum: ${err.message}` });
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// @route   GET api/admin/grades/export
+// @desc    Export student quiz results & progress for offline collection to flashdisk
+// @access  Private (Admin)
+router.get('/grades/export', [authMiddleware, adminMiddleware], async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT 
+        u.name as nama_siswa,
+        u.email,
+        u.region as wilayah,
+        u.district as distrik,
+        m.topic as topik,
+        m.module_name as modul,
+        q.title as judul_kuis,
+        q.type as tipe_kuis,
+        qa.score as nilai,
+        qa.completed_at as waktu_selesai
+      FROM quiz_attempts qa
+      JOIN users u ON qa.user_id = u.id
+      JOIN quizzes q ON qa.quiz_id = q.id
+      JOIN modules m ON q.module_id = m.id
+      ORDER BY u.name ASC, qa.completed_at DESC
+    `);
+
+    res.setHeader('Content-Disposition', `attachment; filename="rekap_nilai_siswa_${Date.now()}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(result.rows, null, 2));
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;

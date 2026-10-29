@@ -46,7 +46,8 @@ const MemberDashboard = () => {
     const url = typeof mod === 'string' ? mod : mod?.external_url;
     const platform = typeof mod === 'object' ? mod?.media_platform : null;
     if (!url) return false;
-    if (platform === 'local_video' || url.startsWith('/uploads/') || url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mkv')) return true;
+    if (platform === 'local_pdf' || url.startsWith('/uploads/documents/') || url.endsWith('.pdf')) return false;
+    if (platform === 'local_video' || url.startsWith('/uploads/videos/') || url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.mkv')) return true;
     return !!(
       url.match(/(?:youtu\.be\/|youtube\.com\/)/) ||
       url.match(/tiktok\.com\/.*?\/video\/\d+/) ||
@@ -57,6 +58,10 @@ const MemberDashboard = () => {
   };
 
   const handleMediaClick = (mod) => {
+    if (mod.media_platform === 'local_pdf' || mod.external_url?.endsWith('.pdf') || mod.external_url?.startsWith('/uploads/documents/')) {
+      window.open(mod.external_url, '_blank');
+      return;
+    }
     if (isEmbeddable(mod)) {
       setPlayingVideo(mod);
     } else {
@@ -160,6 +165,7 @@ const MemberDashboard = () => {
   const getMediaIcon = (platform) => {
     switch (platform) {
       case 'local_video': return 'video_file';
+      case 'local_pdf': return 'picture_as_pdf';
       case 'youtube': return 'smart_display';
       case 'tiktok': return 'movie';
       case 'instagram': return 'video_library';
@@ -719,6 +725,7 @@ const MemberDashboard = () => {
                                                       <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors"></div>
                                                       <span className={`material-symbols-outlined text-2xl z-10 drop-shadow-md ${
                                                         mod.media_platform === 'local_video' ? 'text-emerald-500' :
+                                                        mod.media_platform === 'local_pdf' ? 'text-rose-500' :
                                                         mod.media_platform === 'youtube' ? 'text-red-500' :
                                                         mod.media_platform === 'gdrive_pdf' ? 'text-rose-500' : 'text-white'
                                                       }`}>
@@ -731,9 +738,11 @@ const MemberDashboard = () => {
                                                         <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
                                                           mod.media_platform === 'local_video'
                                                             ? 'text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60'
+                                                            : mod.media_platform === 'local_pdf'
+                                                            ? 'text-rose-800 dark:text-rose-300 bg-rose-100 dark:bg-rose-950/60'
                                                             : 'text-secondary dark:text-yellow-400 bg-secondary/10 dark:bg-yellow-400/10'
                                                         }`}>
-                                                          {mod.media_platform === 'local_video' ? 'MP4 Lokal (Offline)' : mod.media_platform}
+                                                          {mod.media_platform === 'local_video' ? 'MP4 Lokal (Offline)' : mod.media_platform === 'local_pdf' ? 'PDF Lokal (Offline)' : mod.media_platform}
                                                         </span>
                                                         <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
                                                           {mod.category}

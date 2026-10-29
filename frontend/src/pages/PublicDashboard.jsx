@@ -262,6 +262,10 @@ const PublicDashboard = () => {
   };
 
   const handlePreviewClick = (mod) => {
+    if (mod.media_platform === 'local_pdf' || mod.external_url?.endsWith('.pdf') || mod.external_url?.startsWith('/uploads/documents/')) {
+      window.open(mod.external_url, '_blank');
+      return;
+    }
     setPreviewTimeLeft(15);
     setPreviewEnded(false);
     setPreviewIframeKey(Date.now());
@@ -347,6 +351,7 @@ const PublicDashboard = () => {
   const getMediaIcon = (platform) => {
     switch (platform) {
       case 'local_video': return 'video_file';
+      case 'local_pdf': return 'picture_as_pdf';
       case 'youtube': return 'smart_display';
       case 'tiktok': return 'movie';
       case 'instagram': return 'video_library';

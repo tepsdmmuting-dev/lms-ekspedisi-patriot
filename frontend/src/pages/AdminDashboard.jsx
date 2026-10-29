@@ -35,9 +35,16 @@ const AdminDashboard = () => {
     title: '', description: '', media_platform: 'youtube', external_url: '', category: 'Pelatihan', topic: 'IT', module_name: 'Modul 1', order_index: 1, visibility: 'restricted', image_url: '', image_source: ''
   });
 
-  // Local Video Upload & Storage state (Offline Support)
+  // Local Video & PDF Upload & Storage state (Offline Support)
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [localVideosList, setLocalVideosList] = useState([]);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [localDocsList, setLocalDocsList] = useState([]);
+
+  // Tahap 2: Flashdisk Export & Import state
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExportingGrades, setIsExportingGrades] = useState(false);
 
   const fetchLocalVideos = async () => {
     try {
@@ -51,6 +58,21 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       console.error('Failed to fetch local videos', err);
+    }
+  };
+
+  const fetchLocalDocs = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload/documents', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLocalDocsList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch local documents', err);
     }
   };
 
@@ -86,6 +108,165 @@ const AdminDashboard = () => {
       alert('Terjadi kesalahan jaringan saat mengunggah video');
     } finally {
       setIsUploadingVideo(false);
+    }
+  };
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPdf(true);
+    const uploadData = new FormData();
+    uploadData.append('pdf', file);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload/pdf', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFormData(prev => ({
+          ...prev,
+          media_platform: 'local_pdf',
+          external_url: data.url,
+          title: prev.title ? prev.title : file.name.replace(/\.[^/.]+$/, "")
+        }));
+        fetchLocalDocs();
+      } else {
+        alert(data.msg || 'Gagal mengunggah dokumen PDF');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan jaringan saat mengunggah dokumen PDF');
+    } finally {
+      setIsUploadingPdf(false);
+    }
+  };
+
+  const handleExportCurriculum = async () => {
+    try {
+      setIsExporting(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/curriculum/export', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Gagal mengekspor kurikulum.');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lms_patriot_curriculum_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Gagal mengekspor kurikulum.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImportCurriculum = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!window.confirm(`Apakah Anda yakin ingin mengimpor kurikulum dari file "${file.name}"? Data modul dan kuis di server lokal akan disinkronkan.`)) {
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsImporting(true);
+      const text = await file.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (pErr) {
+        throw new Error('File tidak berformat JSON yang valid.');
+      }
+
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/curriculum/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(parsed)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`✅ ${data.msg}\nBerhasil memproses ${data.importedModulesCount} modul dan ${data.importedQuizzesCount} kuis.`);
+        fetchModules();
+      } else {
+        alert(data.msg || 'Gagal mengimpor kurikulum.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Gagal memproses file kurikulum.');
+    } finally {
+      setIsImporting(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleExportGrades = async () => {
+    try {
+      setIsExportingGrades(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/admin/grades/export', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Gagal mengekspor nilai siswa.');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rekap_nilai_siswa_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Gagal mengekspor rekap nilai siswa.');
+    } finally {
+      setIsExportingGrades(false);
+    }
+  };
+
+  const getUrlPlaceholder = (platform) => {
+    switch (platform) {
+      case 'youtube':
+        return 'https://www.youtube.com/watch?v=... atau https://youtu.be/...';
+      case 'tiktok':
+        return 'https://www.tiktok.com/@username/video/...';
+      case 'instagram':
+        return 'https://www.instagram.com/reel/... atau https://www.instagram.com/p/...';
+      case 'gdrive_pdf':
+        return 'https://drive.google.com/file/d/.../view';
+      default:
+        return 'https://...';
+    }
+  };
+
+  const getUrlLabel = (platform) => {
+    switch (platform) {
+      case 'youtube':
+        return 'URL Video YouTube';
+      case 'tiktok':
+        return 'URL Video TikTok';
+      case 'instagram':
+        return 'URL Post / Reel Instagram';
+      case 'gdrive_pdf':
+        return 'URL Dokumen Google Drive (PDF)';
+      default:
+        return 'URL Materi (Link Video / Dokumen)';
     }
   };
 
@@ -198,6 +379,7 @@ const AdminDashboard = () => {
     fetchModules();
     fetchTopics();
     fetchLocalVideos();
+    fetchLocalDocs();
   }, []);
 
   const handleLogout = () => {
@@ -304,6 +486,7 @@ const AdminDashboard = () => {
       image_source: ''
     });
     fetchLocalVideos();
+    fetchLocalDocs();
     setShowForm(true);
   };
 
@@ -335,6 +518,7 @@ const AdminDashboard = () => {
       image_source: mod.image_source || ''
     });
     fetchLocalVideos();
+    fetchLocalDocs();
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -623,6 +807,7 @@ const AdminDashboard = () => {
                             >
                                 <option value="youtube">YouTube (Online)</option>
                                 <option value="local_video">📁 Video Lokal MP4 (Offline)</option>
+                                <option value="local_pdf">📄 Dokumen PDF Lokal (Offline)</option>
                                 <option value="gdrive_pdf">Google Drive (PDF)</option>
                                 <option value="tiktok">TikTok</option>
                                 <option value="instagram">Instagram</option>
@@ -737,18 +922,123 @@ const AdminDashboard = () => {
                             </div>
                           )}
                         </div>
+                      ) : formData.media_platform === 'local_pdf' ? (
+                        <div className="p-4 bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800/50 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="block text-xs font-bold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                              <span>File Dokumen PDF Lokal (Server Offline)</span>
+                            </label>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-200/80 dark:bg-rose-900/60 text-rose-900 dark:text-rose-200">
+                              Mode Offline
+                            </span>
+                          </div>
+
+                          {/* Quick Picker from existing files in uploads/documents */}
+                          {localDocsList.length > 0 && (
+                            <div>
+                              <label className="block text-[11px] text-slate-600 dark:text-slate-300 font-medium mb-1">
+                                Pilih dari dokumen PDF yang sudah ada di server:
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={formData.external_url}
+                                  onChange={e => {
+                                    if (e.target.value) {
+                                      const chosen = localDocsList.find(d => d.url === e.target.value);
+                                      setFormData({
+                                        ...formData,
+                                        external_url: e.target.value,
+                                        title: formData.title || (chosen ? chosen.filename.replace(/\.[^/.]+$/, "") : '')
+                                      });
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs outline-none"
+                                >
+                                  <option value="">-- Pilih dokumen di folder uploads/documents --</option>
+                                  {localDocsList.map(d => (
+                                    <option key={d.filename} value={d.url}>
+                                      {d.filename} ({(d.size / (1024 * 1024)).toFixed(1)} MB)
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={fetchLocalDocs}
+                                  className="p-2 text-slate-600 dark:text-slate-300 hover:text-rose-600 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
+                                  title="Segarkan daftar dokumen"
+                                >
+                                  <span className="material-symbols-outlined text-sm">refresh</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Upload new PDF document */}
+                          <div>
+                            <label className="block text-[11px] text-slate-600 dark:text-slate-300 font-medium mb-1">
+                              Atau unggah file PDF baru dari laptop/flashdisk:
+                            </label>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                              <input
+                                type="text"
+                                required
+                                value={formData.external_url}
+                                onChange={e => setFormData({ ...formData, external_url: e.target.value })}
+                                className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-mono outline-none"
+                                placeholder="/uploads/documents/nama_dokumen.pdf"
+                              />
+                              <label className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-sm ${
+                                isUploadingPdf
+                                  ? 'bg-slate-400 text-white cursor-not-allowed'
+                                  : 'bg-rose-600 hover:bg-rose-700 text-white'
+                              }`}>
+                                <span className="material-symbols-outlined text-base">
+                                  {isUploadingPdf ? 'hourglass_top' : 'upload_file'}
+                                </span>
+                                <span>{isUploadingPdf ? 'Mengunggah...' : 'Pilih File PDF'}</span>
+                                <input
+                                  type="file"
+                                  accept=".pdf,application/pdf"
+                                  disabled={isUploadingPdf}
+                                  onChange={handlePdfUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Local PDF Link & Preview Button */}
+                          {formData.external_url && (
+                            <div className="pt-2 border-t border-rose-200/60 dark:border-rose-800/40 flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-300 truncate max-w-sm">
+                                <span className="material-symbols-outlined text-base">description</span>
+                                <span className="truncate">{formData.external_url}</span>
+                              </div>
+                              <a
+                                href={formData.external_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                <span>Buka PDF di Tab Baru</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <div>
                           <label className="block text-label-sm font-medium mb-1 dark:text-slate-300">
-                            URL Materi (Link Video / Dokumen)
+                            {getUrlLabel(formData.media_platform)}
                           </label>
                           <input
                             required
                             type="text"
                             value={formData.external_url}
                             onChange={e => setFormData({ ...formData, external_url: e.target.value })}
-                            className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all"
-                            placeholder="https://www.youtube.com/watch?v=..."
+                            className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                            placeholder={getUrlPlaceholder(formData.media_platform)}
                           />
                         </div>
                       )}
@@ -917,6 +1207,64 @@ const AdminDashboard = () => {
                 >
                   <span className="material-symbols-outlined text-base">add_circle</span>
                   <span>Tambah Materi</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Toolbar Sinkronisasi Flashdisk & Mode Offline (Tahap 2) */}
+            <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-purple-50/90 dark:from-slate-900/90 dark:via-slate-800/80 dark:to-slate-900/90 border border-blue-200/80 dark:border-blue-900/50 p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 dark:bg-blue-400/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-2xl">usb</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      Sinkronisasi Offline & Flashdisk (Tahap 2)
+                    </h3>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                      Server Lokal
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Ekspor kurikulum & materi ke file JSON di flashdisk untuk disalin ke komputer server sekolah tanpa internet.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleExportCurriculum}
+                  disabled={isExporting}
+                  className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-blue-500 text-slate-700 dark:text-slate-200 hover:text-blue-600 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  title="Unduh paket kurikulum JSON untuk dipindahkan ke flashdisk"
+                >
+                  <span className="material-symbols-outlined text-base text-blue-500">file_download</span>
+                  <span>{isExporting ? 'Mengekspor...' : 'Ekspor Kurikulum'}</span>
+                </button>
+
+                <label className={`px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-slate-700 dark:text-slate-200 hover:text-emerald-600 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer ${isImporting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <span className="material-symbols-outlined text-base text-emerald-500">file_upload</span>
+                  <span>{isImporting ? 'Mengimpor...' : 'Impor dari Flashdisk'}</span>
+                  <input
+                    type="file"
+                    accept=".json,application/json"
+                    disabled={isImporting}
+                    onChange={handleImportCurriculum}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleExportGrades}
+                  disabled={isExportingGrades}
+                  className="px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:border-amber-500 text-slate-700 dark:text-slate-200 hover:text-amber-600 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  title="Unduh rekap nilai siswa dari server lokal ke flashdisk"
+                >
+                  <span className="material-symbols-outlined text-base text-amber-500">assessment</span>
+                  <span>{isExportingGrades ? 'Mengekspor...' : 'Ekspor Nilai Siswa'}</span>
                 </button>
               </div>
             </div>
@@ -1393,11 +1741,13 @@ const AdminDashboard = () => {
                                             <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                               <span className={`material-symbols-outlined text-lg ${
                                                 mod.media_platform === 'local_video' ? 'text-emerald-500' :
+                                                mod.media_platform === 'local_pdf' ? 'text-rose-500' :
                                                 mod.media_platform === 'youtube' ? 'text-red-500' :
                                                 mod.media_platform === 'gdrive_pdf' ? 'text-rose-600' :
                                                 mod.media_platform === 'tiktok' ? 'text-slate-900 dark:text-white' : 'text-purple-500'
                                               }`}>
                                                 {mod.media_platform === 'local_video' ? 'video_file' :
+                                                 mod.media_platform === 'local_pdf' ? 'picture_as_pdf' :
                                                  mod.media_platform === 'youtube' ? 'smart_display' :
                                                  mod.media_platform === 'gdrive_pdf' ? 'picture_as_pdf' :
                                                  mod.media_platform === 'tiktok' ? 'movie' : 'video_library'}
@@ -1416,9 +1766,11 @@ const AdminDashboard = () => {
                                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                                                   mod.media_platform === 'local_video'
                                                     ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold'
+                                                    : mod.media_platform === 'local_pdf'
+                                                    ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 font-bold'
                                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                                                 }`}>
-                                                  {mod.media_platform === 'local_video' ? 'MP4 Lokal' : mod.category}
+                                                  {mod.media_platform === 'local_video' ? 'MP4 Lokal' : mod.media_platform === 'local_pdf' ? 'PDF Lokal (Offline)' : mod.category}
                                                 </span>
                                               </div>
                                               <p className="text-[11px] text-slate-400 truncate max-w-md">{mod.external_url}</p>
