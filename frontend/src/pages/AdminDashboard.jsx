@@ -222,8 +222,23 @@ const AdminDashboard = () => {
       const res = await fetch('/api/admin/grades/export', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Gagal mengekspor nilai siswa.');
-      const blob = await res.blob();
+      
+      const text = await res.text();
+      let data = [];
+      try {
+        data = JSON.parse(text);
+      } catch (pErr) {}
+
+      if (!res.ok) {
+        throw new Error(data?.msg || 'Gagal mengekspor data nilai siswa dari server.');
+      }
+
+      if (Array.isArray(data) && data.length === 0) {
+        alert('ℹ️ Belum ada catatan nilai siswa yang mengerjakan kuis di database saat ini.');
+        return;
+      }
+
+      const blob = new Blob([text], { type: 'application/json' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -232,6 +247,8 @@ const AdminDashboard = () => {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
+      alert(`✅ Berhasil mengekspor ${data.length} catatan pengerjaan kuis siswa.`);
     } catch (err) {
       console.error(err);
       alert(err.message || 'Gagal mengekspor rekap nilai siswa.');

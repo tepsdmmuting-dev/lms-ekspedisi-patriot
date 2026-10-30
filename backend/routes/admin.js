@@ -336,19 +336,19 @@ router.get('/grades/export', [authMiddleware, adminMiddleware], async (req, res)
       SELECT 
         u.name as nama_siswa,
         u.email,
-        u.region as wilayah,
-        u.district as distrik,
-        m.topic as topik,
-        m.module_name as modul,
-        q.title as judul_kuis,
-        q.type as tipe_kuis,
+        COALESCE(u.region, '-') as wilayah,
+        COALESCE(u.district, '-') as distrik,
+        COALESCE(m.topic, '-') as topik,
+        COALESCE(m.module_name, '-') as modul,
+        COALESCE(q.title, 'Kuis') as judul_kuis,
+        COALESCE(q.type::text, '-') as tipe_kuis,
         qa.score as nilai,
-        qa.completed_at as waktu_selesai
+        qa.created_at as waktu_selesai
       FROM quiz_attempts qa
       JOIN users u ON qa.user_id = u.id
-      JOIN quizzes q ON qa.quiz_id = q.id
-      JOIN modules m ON q.module_id = m.id
-      ORDER BY u.name ASC, qa.completed_at DESC
+      LEFT JOIN quizzes q ON qa.quiz_id = q.id
+      LEFT JOIN modules m ON q.module_id = m.id
+      ORDER BY qa.created_at DESC, u.name ASC
     `);
 
     res.setHeader('Content-Disposition', `attachment; filename="rekap_nilai_siswa_${Date.now()}.json"`);
@@ -356,7 +356,7 @@ router.get('/grades/export', [authMiddleware, adminMiddleware], async (req, res)
     res.send(JSON.stringify(result.rows, null, 2));
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).json({ msg: 'Gagal mengekspor data nilai: ' + err.message });
   }
 });
 
