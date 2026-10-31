@@ -47,7 +47,7 @@ const Login = () => {
                 <input
                   type="email"
                   required
-                  placeholder="admin@ep.gov.id"
+                  placeholder="contoh@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 border border-white/50 dark:border-slate-700 shadow-inner rounded-xl focus:ring-4 focus:ring-primary-fixed/60 dark:focus:ring-blue-400/30 focus:border-primary-fixed dark:focus:border-blue-400 focus:bg-white/90 dark:focus:bg-slate-800 outline-none transition-all appearance-none placeholder-outline-variant/60 dark:placeholder-slate-500 font-medium text-slate-700 dark:text-white"
@@ -61,7 +61,7 @@ const Login = () => {
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Masukkan kata sandi"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 bg-white/50 dark:bg-slate-800/50 border border-white/50 dark:border-slate-700 shadow-inner rounded-xl focus:ring-4 focus:ring-primary-fixed/60 dark:focus:ring-blue-400/30 focus:border-primary-fixed dark:focus:border-blue-400 focus:bg-white/90 dark:focus:bg-slate-800 outline-none transition-all appearance-none placeholder-outline-variant/60 dark:placeholder-slate-500 font-medium text-slate-700 dark:text-white"
