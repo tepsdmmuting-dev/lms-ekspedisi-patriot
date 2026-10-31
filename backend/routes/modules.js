@@ -11,7 +11,17 @@ router.get('/topics', [authMiddleware, adminMiddleware], async (req, res) => {
     const result = await db.query(
       "SELECT DISTINCT topic FROM modules WHERE topic IS NOT NULL AND topic != '' ORDER BY topic ASC"
     );
-    res.json(result.rows.map(r => r.topic));
+    const dbTopics = result.rows.map(r => r.topic);
+    const defaultTopics = [
+      'IT',
+      'Kewirausahaan',
+      'Kesehatan',
+      'Bhineka Tunggal Ika',
+      'Keuangan',
+      'Karir Masa Depan'
+    ];
+    const allTopics = Array.from(new Set([...defaultTopics, ...dbTopics]));
+    res.json(allTopics);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

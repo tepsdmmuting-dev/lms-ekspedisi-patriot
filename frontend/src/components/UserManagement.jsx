@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { DEFAULT_TOPICS } from '../constants/topics';
 
 const UserManagement = ({ currentUserRole }) => {
   const [users, setUsers] = useState([]);
-  const [allTopics, setAllTopics] = useState([]);
+  const [allTopics, setAllTopics] = useState(DEFAULT_TOPICS);
   const [showForm, setShowForm] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', role: 'trainee', region: '', district: '' });
@@ -70,7 +71,10 @@ const UserManagement = ({ currentUserRole }) => {
       const res = await fetch('/api/modules/topics', {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      if (res.ok) setAllTopics(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setAllTopics(Array.from(new Set([...DEFAULT_TOPICS, ...data])));
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -125,7 +129,13 @@ const UserManagement = ({ currentUserRole }) => {
 
   const openAssign = (u) => {
     setSelectedUser(u);
-    setSelectedTopics([...u.assigned_topics]);
+    // Normalisasi jika masih ada data legacy dari DB
+    const normalized = (u.assigned_topics || []).map(t => {
+      if (t === 'Teknologi') return 'IT';
+      if (t === 'Finance') return 'Keuangan';
+      return t;
+    });
+    setSelectedTopics(Array.from(new Set(normalized)));
   };
 
   const toggleTopic = (topic) => {
@@ -310,9 +320,12 @@ const UserManagement = ({ currentUserRole }) => {
                   <td className="py-3 px-2 sm:px-4 text-sm text-on-surface-variant dark:text-slate-400 hidden md:table-cell">{u.email}</td>
                   <td className="py-3 px-2 sm:px-4 hidden md:table-cell">
                     <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-                      {u.assigned_topics.map((t, idx) => (
-                        <span key={idx} className="bg-[#004A74] dark:bg-[#004A74]/50 dark:border dark:border-[#004A74] text-white px-3 py-1 rounded-full text-[11px] font-medium tracking-wide shadow-sm">{t}</span>
-                      ))}
+                      {u.assigned_topics.map((t, idx) => {
+                        const displayTopic = t === 'Teknologi' ? 'IT' : (t === 'Finance' ? 'Keuangan' : t);
+                        return (
+                          <span key={idx} className="bg-[#004A74] dark:bg-[#004A74]/50 dark:border dark:border-[#004A74] text-white px-3 py-1 rounded-full text-[11px] font-medium tracking-wide shadow-sm">{displayTopic}</span>
+                        );
+                      })}
                       {u.assigned_topics.length === 0 && <span className="text-xs text-on-surface-variant dark:text-slate-400 italic">Belum ada topik</span>}
                     </div>
                   </td>

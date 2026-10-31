@@ -54,3 +54,5 @@ export const TOPICS_LIST = [
     desc: 'Pengembangan potensi diri anak negeri, kesiapan memasuki dunia kerja profesional, dan pembentukan kepemimpinan masa depan.'
   }
 ];
+
+export const DEFAULT_TOPICS = TOPICS_LIST.map(t => t.name);
