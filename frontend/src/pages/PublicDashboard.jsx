@@ -138,6 +138,9 @@ const PublicDashboard = () => {
   const [previewTimeLeft, setPreviewTimeLeft] = useState(15);
   const [previewEnded, setPreviewEnded] = useState(false);
   const [previewIframeKey, setPreviewIframeKey] = useState(0);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const previewIframeRef = useRef(null);
+  const previewVideoRef = useRef(null);
   const [showAllMateri, setShowAllMateri] = useState(false);
   const [showAllPengumuman, setShowAllPengumuman] = useState(false);
   const [showAllKisah, setShowAllKisah] = useState(false);
@@ -151,14 +154,18 @@ const PublicDashboard = () => {
     // YouTube Standard
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&]{11})/);
     if (ytMatch && ytMatch[1]) {
-      const extra = isPreview ? '&start=0&end=15&controls=1&rel=0' : '';
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const originParam = origin ? `&origin=${encodeURIComponent(origin)}` : '';
+      const extra = isPreview ? `&enablejsapi=1&rel=0${originParam}` : '';
       return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1${extra}`;
     }
     
     // YouTube Shorts
     const ytShortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
     if (ytShortsMatch && ytShortsMatch[1]) {
-      const extra = isPreview ? '&start=0&end=15&controls=1&rel=0' : '';
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const originParam = origin ? `&origin=${encodeURIComponent(origin)}` : '';
+      const extra = isPreview ? `&enablejsapi=1&rel=0${originParam}` : '';
       return `https://www.youtube.com/embed/${ytShortsMatch[1]}?autoplay=1${extra}`;
     }
     
@@ -261,6 +268,13 @@ const PublicDashboard = () => {
     }
   };
 
+  const closePreviewModal = () => {
+    setPreviewModal(null);
+    setIsPreviewPlaying(false);
+    setPreviewEnded(false);
+    setPreviewTimeLeft(15);
+  };
+
   const handlePreviewClick = (mod) => {
     if (mod.media_platform === 'local_pdf' || mod.external_url?.endsWith('.pdf') || mod.external_url?.startsWith('/uploads/documents/')) {
       window.open(mod.external_url, '_blank');
@@ -268,6 +282,7 @@ const PublicDashboard = () => {
     }
     setPreviewTimeLeft(15);
     setPreviewEnded(false);
+    setIsPreviewPlaying(false); // Hitung mundur belum berjalan sampai video benar-benar mulai berputar
     setPreviewIframeKey(Date.now());
     setPreviewModal(mod);
   };
@@ -296,20 +311,120 @@ const PublicDashboard = () => {
     };
   }, [selectedTopic, previewModal]);
 
+  // Handle YouTube iframe API messages for play/pause/buffer state
   useEffect(() => {
-    if (!previewModal || previewEnded) return;
+    if (!previewModal) return;
+
+    const handleMessage = (event) => {
+      let data = event.data;
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          return;
+        }
+      }
+      if (!data || typeof data !== 'object') return;
+
+      let state = null;
+      if (data.event === 'onStateChange') {
+        state = data.info;
+      } else if (data.event === 'infoDelivery' && data.info && data.info.playerState !== undefined) {
+        state = data.info.playerState;
+      }
+
+      if (state === 1) {
+        // YT.PlayerState.PLAYING (1) -> video aktif berputar!
+        setIsPreviewPlaying(true);
+      } else if (state === 2 || state === 3) {
+        // YT.PlayerState.PAUSED (2) atau BUFFERING (3) -> jeda hitung mundur
+        setIsPreviewPlaying(false);
+      } else if (state === 0) {
+        // YT.PlayerState.ENDED (0)
+        setIsPreviewPlaying(false);
+        setPreviewEnded(true);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [previewModal]);
+
+  // Handshake ke YouTube iframe agar mengirim event onStateChange
+  useEffect(() => {
+    if (!previewModal || previewEnded || isPreviewPlaying) return;
+    const isLocal = previewModal.media_platform === 'local_video' || 
+                    previewModal.external_url?.endsWith('.mp4') || 
+                    previewModal.external_url?.startsWith('/uploads/');
+    if (isLocal) return;
+
+    const pingYT = () => {
+      if (previewIframeRef.current?.contentWindow) {
+        try {
+          previewIframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'listening' }),
+            '*'
+          );
+          previewIframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }),
+            '*'
+          );
+        } catch (e) {}
+      }
+    };
+
+    pingYT();
+    const interval = setInterval(pingYT, 800);
+    return () => clearInterval(interval);
+  }, [previewModal, previewEnded, isPreviewPlaying, previewIframeKey]);
+
+  // Deteksi interaksi klik ke dalam player/iframe (fallback jika postMessage dibatasi browser)
+  useEffect(() => {
+    if (!previewModal || isPreviewPlaying || previewEnded) return;
+
+    const handleWindowBlur = () => {
+      setTimeout(() => {
+        setIsPreviewPlaying(true);
+      }, 500);
+    };
+
+    window.addEventListener('blur', handleWindowBlur);
+    return () => window.removeEventListener('blur', handleWindowBlur);
+  }, [previewModal, isPreviewPlaying, previewEnded]);
+
+  // Hitung mundur HANYA berjalan jika video benar-benar sedang diputar (isPreviewPlaying === true)
+  useEffect(() => {
+    if (!previewModal || previewEnded || !isPreviewPlaying) return;
     const timer = setInterval(() => {
       setPreviewTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
           setPreviewEnded(true);
+          setIsPreviewPlaying(false);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [previewModal, previewEnded, previewIframeKey]);
+  }, [previewModal, previewEnded, isPreviewPlaying]);
+
+  // Pause video otomatis saat batas 15 detik tercapai
+  useEffect(() => {
+    if (previewEnded) {
+      if (previewVideoRef.current) {
+        try { previewVideoRef.current.pause(); } catch (e) {}
+      }
+      if (previewIframeRef.current?.contentWindow) {
+        try {
+          previewIframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }),
+            '*'
+          );
+        } catch (e) {}
+      }
+    }
+  }, [previewEnded]);
 
   useEffect(() => {
     const fetchModules = async () => {
@@ -921,25 +1036,51 @@ const PublicDashboard = () => {
             <div className="bg-[#004A74] text-white rounded-2xl overflow-hidden shadow-xl border border-sky-400/30">
               <div className="px-5 py-2.5 flex items-center justify-between font-bold text-xs md:text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg text-sky-300">timer</span>
-                  <span>
-                    {previewEnded
-                      ? '⏱️ Cuplikan Selesai (Batas 15 Detik)'
-                      : `⏱️ Cuplikan Preview: Sisa ${previewTimeLeft} detik • Maksimal 15 detik`}
-                  </span>
+                  {previewEnded ? (
+                    <>
+                      <span className="material-symbols-outlined text-lg text-sky-300">timer_off</span>
+                      <span>⏱️ Cuplikan Selesai (Batas 15 Detik)</span>
+                    </>
+                  ) : isPreviewPlaying ? (
+                    <>
+                      <span className="material-symbols-outlined text-lg text-emerald-300 animate-pulse">timer</span>
+                      <span>⏱️ Cuplikan Berjalan: Sisa {previewTimeLeft} detik • Maksimal 15 detik</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-lg text-amber-300 animate-pulse">play_circle</span>
+                      <span className="text-amber-100">
+                        ⏸️ Menunggu Video Diputar • Hitung mundur 15 detik akan berjalan saat video mulai
+                      </span>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={() => setPreviewModal(null)}
-                  title="Tutup"
-                  className="w-7 h-7 bg-white/15 hover:bg-white/25 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-base">close</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {!previewEnded && !isPreviewPlaying && (
+                    <button
+                      onClick={() => setIsPreviewPlaying(true)}
+                      className="hidden sm:inline-flex items-center gap-1 bg-white/15 hover:bg-white/25 text-xs text-white px-2.5 py-1 rounded-lg transition-colors font-semibold cursor-pointer"
+                      title="Mulai hitung mundur sekarang jika video sudah berputar"
+                    >
+                      <span className="material-symbols-outlined text-sm">play_arrow</span>
+                      <span>Mulai Timer</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={closePreviewModal}
+                    title="Tutup"
+                    className="w-7 h-7 bg-white/15 hover:bg-white/25 text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">close</span>
+                  </button>
+                </div>
               </div>
               {/* Animated Progress Bar */}
               <div className="w-full bg-black/25 h-1">
                 <div
-                  className="bg-sky-400 h-full transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                  className={`h-full transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(56,189,248,0.8)] ${
+                    isPreviewPlaying ? 'bg-sky-400' : 'bg-amber-400'
+                  }`}
                   style={{ width: `${(previewTimeLeft / 15) * 100}%` }}
                 ></div>
               </div>
@@ -949,23 +1090,44 @@ const PublicDashboard = () => {
             <div className="w-full bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/20 aspect-video relative">
               {previewModal.media_platform === 'local_video' || previewModal.external_url?.endsWith('.mp4') || previewModal.external_url?.startsWith('/uploads/') ? (
                 <video
+                  ref={previewVideoRef}
                   key={previewIframeKey}
                   src={previewModal.external_url}
                   controls
                   autoPlay
                   controlsList="nodownload"
+                  onPlay={() => setIsPreviewPlaying(true)}
+                  onPlaying={() => setIsPreviewPlaying(true)}
+                  onPause={() => setIsPreviewPlaying(false)}
+                  onWaiting={() => setIsPreviewPlaying(false)}
+                  onEnded={() => {
+                    setIsPreviewPlaying(false);
+                    setPreviewEnded(true);
+                  }}
                   className="w-full h-full absolute inset-0 object-contain bg-black"
                 >
                   Browser Anda tidak mendukung pemutar video HTML5.
                 </video>
               ) : (
                 <iframe
+                  ref={previewIframeRef}
                   key={previewIframeKey}
                   src={getEmbedUrl(previewModal.external_url, true)}
+                  onLoad={() => {
+                    try {
+                      previewIframeRef.current?.contentWindow?.postMessage(
+                        JSON.stringify({ event: 'listening' }),
+                        '*'
+                      );
+                      previewIframeRef.current?.contentWindow?.postMessage(
+                        JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }),
+                        '*'
+                      );
+                    } catch (e) {}
+                  }}
                   className="w-full h-full absolute inset-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
                 ></iframe>
               )}
 
@@ -987,6 +1149,7 @@ const PublicDashboard = () => {
                       onClick={() => {
                         setPreviewTimeLeft(15);
                         setPreviewEnded(false);
+                        setIsPreviewPlaying(false);
                         setPreviewIframeKey(Date.now());
                       }}
                       className="px-5 py-2.5 rounded-xl border border-white/20 text-white font-bold hover:bg-white/10 text-xs sm:text-sm transition-all flex items-center gap-1.5"
@@ -996,7 +1159,7 @@ const PublicDashboard = () => {
                     </button>
                     <button
                       onClick={() => {
-                        setPreviewModal(null);
+                        closePreviewModal();
                         navigate('/login');
                       }}
                       className="bg-[#004A74] hover:bg-[#003857] text-white px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-xl transition-all border border-sky-400/40 flex items-center gap-1.5 hover:scale-105"
@@ -1020,14 +1183,14 @@ const PublicDashboard = () => {
               </div>
               <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
                 <button
-                  onClick={() => setPreviewModal(null)}
+                  onClick={closePreviewModal}
                   className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl border border-white/20 text-white text-xs md:text-sm font-bold hover:bg-white/10 transition-colors"
                 >
                   Tutup
                 </button>
                 <button
                   onClick={() => {
-                    setPreviewModal(null);
+                    closePreviewModal();
                     navigate('/login');
                   }}
                   className="flex-1 md:flex-initial bg-[#004A74] hover:bg-[#003857] text-white px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all shadow-lg border border-sky-400/30 flex items-center justify-center gap-1.5 hover:scale-105"
