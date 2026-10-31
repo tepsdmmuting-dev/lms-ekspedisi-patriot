@@ -29,6 +29,19 @@ const ensureSchema = async () => {
     try {
       await pool.query("ALTER TYPE media_platform_type ADD VALUE IF NOT EXISTS 'local_pdf'");
     } catch (e) {}
+    try {
+      await pool.query(`
+        INSERT INTO user_topics (user_id, topic)
+        SELECT user_id, 'IT' FROM user_topics WHERE topic = 'Teknologi'
+        ON CONFLICT (user_id, topic) DO NOTHING;
+        DELETE FROM user_topics WHERE topic = 'Teknologi';
+
+        INSERT INTO user_topics (user_id, topic)
+        SELECT user_id, 'Keuangan' FROM user_topics WHERE topic = 'Finance'
+        ON CONFLICT (user_id, topic) DO NOTHING;
+        DELETE FROM user_topics WHERE topic = 'Finance';
+      `);
+    } catch (e) {}
     migrationDone = true;
     console.log('Database schema and migrations verified successfully');
   } catch (migErr) {
