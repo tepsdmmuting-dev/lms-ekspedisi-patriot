@@ -146,3 +146,46 @@
   }
 }
 
+/* Print optimization for Topic Recap Sheets */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide the main app DOM tree when printing modal */
+  #root,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show recap modal and printable sheet cleanly */
+  .recap-print-sheet {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .recap-print-sheet table,
+  .recap-print-sheet tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+

@@ -40,7 +40,17 @@ router.post('/login', async (req, res) => {
       { expiresIn: 360000 },
       (err, token) => {
         if (err) throw err;
-        res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+        res.json({ 
+          token, 
+          user: { 
+            id: user.id, 
+            name: user.name, 
+            email: user.email,
+            role: user.role, 
+            region: user.region, 
+            district: user.district 
+          } 
+        });
       }
     );
   } catch (err) {

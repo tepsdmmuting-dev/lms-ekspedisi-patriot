@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import QuizModal from '../components/QuizModal';
 import ThemeToggle from '../components/ThemeToggle';
+import TopicRecapModal from '../components/TopicRecapModal';
 import { TOPICS_LIST } from '../constants/topics';
 
 const MemberDashboard = () => {
@@ -24,6 +25,12 @@ const MemberDashboard = () => {
   const playingVideoRef = useRef(null);
   const [watchNoticeModal, setWatchNoticeModal] = useState({ show: false, module: null });
   const [justCompletedId, setJustCompletedId] = useState(null);
+  const [recapModal, setRecapModal] = useState({
+    show: false,
+    topicName: '',
+    topicMeta: null,
+    modules: []
+  });
 
   const toggleModuleCollapse = (key) => {
     setCollapsedModules(prev => ({ ...prev, [key]: !prev[key] }));
@@ -526,8 +533,12 @@ const MemberDashboard = () => {
                     >
                       <span className="material-symbols-outlined text-base">{topic.icon}</span>
                       <span>{topic.name}</span>
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${selectedTopicTab === topic.name ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'}`}>
-                        {completedInTopic}/{topicMods.length}
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        completedInTopic === topicMods.length && topicMods.length > 0
+                          ? 'bg-emerald-500 text-white font-bold'
+                          : selectedTopicTab === topic.name ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+                      }`}>
+                        {completedInTopic === topicMods.length && topicMods.length > 0 ? `✓ ${completedInTopic}/${topicMods.length}` : `${completedInTopic}/${topicMods.length}`}
                       </span>
                     </button>
                   );
@@ -636,14 +647,42 @@ const MemberDashboard = () => {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-4 self-end md:self-auto">
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4 self-end md:self-auto">
                               <div className="text-right">
                                 <span className="text-xs font-bold text-primary dark:text-yellow-400">{completedInTopic} dari {topicModules.length} Tuntas</span>
                                 <p className="text-[10px] text-slate-400">{moduleNames.length} Modul Pembelajaran</p>
                               </div>
-                              <div className="w-24 sm:w-32 bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+                              <div className="w-20 sm:w-28 bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
                                 <div className="bg-secondary dark:bg-yellow-400 h-full rounded-full transition-all duration-700" style={{ width: `${topicProgress}%` }}></div>
                               </div>
+
+                              {/* Tombol Cetak Rekap Hasil (Aktif jika 100% tuntas) */}
+                              {topicProgress === 100 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setRecapModal({
+                                    show: true,
+                                    topicName: currentTopic,
+                                    topicMeta,
+                                    modules: topicModules
+                                  })}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/25 hover:shadow-emerald-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0 cursor-pointer"
+                                  title="Cetak Rekapitulasi Hasil Belajar Topik Ini"
+                                >
+                                  <span className="material-symbols-outlined text-base">print</span>
+                                  <span>Cetak Rekap Hasil</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-medium text-xs border border-slate-200 dark:border-slate-700/80 cursor-not-allowed shrink-0"
+                                  title="Selesaikan seluruh materi pada topik ini untuk membuka dan mencetak rekapitulasi hasil belajar"
+                                >
+                                  <span className="material-symbols-outlined text-sm">lock</span>
+                                  <span>Rekap Terkunci</span>
+                                </button>
+                              )}
                             </div>
                           </div>
 
@@ -1116,6 +1155,17 @@ const MemberDashboard = () => {
         </div>,
         document.body
       )}
+
+      {/* Modal Rekapitulasi Hasil Belajar Peserta (Cetak / PDF) */}
+      <TopicRecapModal
+        isOpen={recapModal.show}
+        onClose={() => setRecapModal(prev => ({ ...prev, show: false }))}
+        topicName={recapModal.topicName}
+        topicMeta={recapModal.topicMeta}
+        modules={recapModal.modules}
+        moduleQuizzes={moduleQuizzes}
+        user={user}
+      />
     </div>
   );
 };
