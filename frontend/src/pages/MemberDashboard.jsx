@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,10 @@ const MemberDashboard = () => {
   const [collapsedModules, setCollapsedModules] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [playingVideo, setPlayingVideo] = useState(null);
+  const playingIframeRef = useRef(null);
+  const playingVideoRef = useRef(null);
+  const [watchNoticeModal, setWatchNoticeModal] = useState({ show: false, module: null });
+  const [justCompletedId, setJustCompletedId] = useState(null);
 
   const toggleModuleCollapse = (key) => {
     setCollapsedModules(prev => ({ ...prev, [key]: !prev[key] }));
@@ -27,18 +31,33 @@ const MemberDashboard = () => {
 
   const getEmbedUrl = (url) => {
     if (!url) return '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const originParam = origin ? `&origin=${encodeURIComponent(origin)}` : '';
+    
+    // YouTube Standard
     const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&]{11})/);
-    if (ytMatch && ytMatch[1]) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1`;
+    if (ytMatch && ytMatch[1]) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&enablejsapi=1&rel=0${originParam}`;
+    
+    // YouTube Shorts
     const ytShortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-    if (ytShortsMatch && ytShortsMatch[1]) return `https://www.youtube.com/embed/${ytShortsMatch[1]}?autoplay=1`;
+    if (ytShortsMatch && ytShortsMatch[1]) return `https://www.youtube.com/embed/${ytShortsMatch[1]}?autoplay=1&enablejsapi=1&rel=0${originParam}`;
+    
+    // TikTok
     const tiktokMatch = url.match(/tiktok\.com\/.*?\/video\/(\d+)/);
     if (tiktokMatch && tiktokMatch[1]) return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
+    
+    // Instagram (Post, Reel, TV)
     const igMatch = url.match(/instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/);
     if (igMatch && igMatch[1]) return `https://www.instagram.com/p/${igMatch[1]}/embed/`;
+    
+    // Spotify
     const spotifyMatch = url.match(/open\.spotify\.com\/(track|playlist|episode|album)\/([a-zA-Z0-9]+)/);
     if (spotifyMatch) return `https://open.spotify.com/embed/${spotifyMatch[1]}/${spotifyMatch[2]}`;
+    
+    // Google Drive PDF/Docs
     const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (driveMatch && driveMatch[1]) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    
     return url;
   };
 
@@ -182,19 +201,123 @@ const MemberDashboard = () => {
     return url;
   };
 
-  const handleToggleComplete = async (mod) => {
+  const isVideoModule = (mod) => {
+    if (!mod) return false;
+    if (mod.media_platform === 'local_video' || mod.media_platform === 'youtube' || mod.media_platform === 'tiktok') return true;
+    const url = mod.external_url || '';
+    if (url.match(/(?:youtu\.be\/|youtube\.com\/|tiktok\.com\/)/)) return true;
+    if (url.endsWith('.mp4') || url.endsWith('.webm') || url.startsWith('/uploads/videos/')) return true;
+    return false;
+  };
+
+  const markModuleCompleted = async (mod) => {
+    if (!mod) return;
+    const current = modules.find(m => m.id === mod.id);
+    if (current?.completed) return;
+
     try {
       const token = localStorage.getItem('token');
-      const newProgress = mod.completed ? 0 : 100;
       const res = await fetch('/api/progress/update', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ module_id: mod.id, progress_percentage: newProgress })
+        body: JSON.stringify({ module_id: mod.id, progress_percentage: 100 })
       });
       if (res.ok) {
-        setModules(modules.map(m => m.id === mod.id ? { ...m, completed: !mod.completed, progress_percentage: newProgress } : m));
+        setModules(prev => prev.map(m => m.id === mod.id ? { ...m, completed: true, progress_percentage: 100 } : m));
+        setJustCompletedId(mod.id);
+        setTimeout(() => setJustCompletedId(null), 7000);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error("Gagal memperbarui progress", err);
+    }
+  };
+
+  // Deteksi YouTube ENDED (State 0) saat video ditonton sampai selesai
+  useEffect(() => {
+    if (!playingVideo) return;
+
+    const handleMessage = (event) => {
+      let data = event.data;
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { return; }
+      }
+      if (!data || typeof data !== 'object') return;
+
+      let state = null;
+      if (data.event === 'onStateChange') {
+        state = data.info;
+      } else if (data.event === 'infoDelivery' && data.info && data.info.playerState !== undefined) {
+        state = data.info.playerState;
+      }
+
+      // State 0 = ENDED (video selesai ditonton full!)
+      if (state === 0) {
+        markModuleCompleted(playingVideo);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [playingVideo, modules]);
+
+  // Handshake ke YouTube iframe
+  useEffect(() => {
+    if (!playingVideo) return;
+    const isLocal = playingVideo.media_platform === 'local_video' || 
+                    playingVideo.external_url?.endsWith('.mp4') || 
+                    playingVideo.external_url?.startsWith('/uploads/');
+    if (isLocal) return;
+
+    const pingYT = () => {
+      if (playingIframeRef.current?.contentWindow) {
+        try {
+          playingIframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'listening' }),
+            '*'
+          );
+          playingIframeRef.current.contentWindow.postMessage(
+            JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }),
+            '*'
+          );
+        } catch (e) {}
+      }
+    };
+
+    pingYT();
+    const interval = setInterval(pingYT, 1000);
+    return () => clearInterval(interval);
+  }, [playingVideo]);
+
+  const handleToggleComplete = async (mod) => {
+    if (!mod.completed) {
+      // Jika materi ini adalah video, siswa WAJIB menonton video sampai selesai
+      if (isVideoModule(mod)) {
+        setWatchNoticeModal({
+          show: true,
+          module: mod
+        });
+        return;
+      }
+      // Untuk dokumen PDF / non-video, langsung tandai selesai
+      await markModuleCompleted(mod);
+    } else {
+      // Jika sudah selesai, konfirmasi jika ingin membatalkan status centang
+      if (window.confirm(`Batalkan status centang selesai untuk materi "${mod.title}"?`)) {
+        try {
+          const token = localStorage.getItem('token');
+          const res = await fetch('/api/progress/update', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ module_id: mod.id, progress_percentage: 0 })
+          });
+          if (res.ok) {
+            setModules(prev => prev.map(m => m.id === mod.id ? { ...m, completed: false, progress_percentage: 0 } : m));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
   };
 
   const groupedModules = modules.reduce((acc, mod) => {
@@ -780,9 +903,15 @@ const MemberDashboard = () => {
                                                       className={`flex items-center justify-center p-1.5 rounded-xl transition-all cursor-pointer ${
                                                         mod.completed 
                                                           ? 'text-emerald-500 hover:text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' 
-                                                          : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'
+                                                          : 'text-slate-300 dark:text-slate-600 hover:text-amber-500'
                                                       }`}
-                                                      title={mod.completed ? "Tandai Belum Selesai" : "Tandai Selesai"}
+                                                      title={
+                                                        mod.completed 
+                                                          ? "Materi Tuntas Selesai (Klik untuk ubah)" 
+                                                          : isVideoModule(mod) 
+                                                            ? "Wajib tonton video sampai selesai untuk mencentang" 
+                                                            : "Tandai Selesai"
+                                                      }
                                                     >
                                                       <span className="material-symbols-outlined text-2xl">
                                                         {mod.completed ? 'check_circle' : 'radio_button_unchecked'}
@@ -831,11 +960,34 @@ const MemberDashboard = () => {
 
       {playingVideo && createPortal(
         <div className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 transition-all overflow-y-auto">
-          <div className="w-full max-w-4xl flex flex-col gap-4 relative my-auto">
-            {/* Close Button */}
-            <div className="flex justify-end">
-              <button onClick={() => setPlayingVideo(null)} className="w-10 h-10 md:w-12 md:h-12 bg-white/10 hover:bg-red-500 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-all shadow-lg border border-white/20 hover:border-red-500 hover:scale-110 mb-2 md:mb-0 md:absolute md:-top-16 md:-right-2">
-                <span className="material-symbols-outlined">close</span>
+          <div className="w-full max-w-4xl flex flex-col gap-3 relative my-auto">
+            {/* Header Status Bar & Close */}
+            <div className="flex items-center justify-between gap-3">
+              {(() => {
+                const isCompleted = modules.find(m => m.id === playingVideo.id)?.completed || justCompletedId === playingVideo.id;
+                return (
+                  <div className="flex items-center gap-2">
+                    {isCompleted ? (
+                      <span className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm animate-in fade-in">
+                        <span className="material-symbols-outlined text-base">check_circle</span>
+                        <span>Materi Ini Telah Tuntas Selesai</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 bg-sky-500/20 text-sky-200 border border-sky-400/30 px-3.5 py-1.5 rounded-full text-xs font-medium shadow-sm">
+                        <span className="material-symbols-outlined text-base text-sky-400">info</span>
+                        <span>Tonton video ini sampai selesai agar materi otomatis tercentang</span>
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <button
+                onClick={() => setPlayingVideo(null)}
+                className="w-9 h-9 md:w-10 md:h-10 bg-white/10 hover:bg-red-500 rounded-full flex items-center justify-center text-white backdrop-blur-md transition-all shadow-lg border border-white/20 hover:border-red-500 cursor-pointer"
+                title="Tutup Pemutar"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
               </button>
             </div>
             
@@ -843,29 +995,122 @@ const MemberDashboard = () => {
             <div className="w-full bg-black rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/20 aspect-video relative">
               {playingVideo.media_platform === 'local_video' || playingVideo.external_url?.endsWith('.mp4') || playingVideo.external_url?.startsWith('/uploads/') ? (
                 <video
+                  ref={playingVideoRef}
                   src={playingVideo.external_url}
                   controls
                   autoPlay
                   controlsList="nodownload"
+                  onEnded={() => markModuleCompleted(playingVideo)}
+                  onTimeUpdate={(e) => {
+                    const v = e.target;
+                    if (v.duration > 0 && v.currentTime / v.duration >= 0.95) {
+                      markModuleCompleted(playingVideo);
+                    }
+                  }}
                   className="w-full h-full absolute inset-0 object-contain bg-black"
                 >
                   Browser Anda tidak mendukung pemutar video HTML5.
                 </video>
               ) : (
                 <iframe
+                  ref={playingIframeRef}
                   src={getEmbedUrl(playingVideo.external_url)}
+                  onLoad={() => {
+                    try {
+                      playingIframeRef.current?.contentWindow?.postMessage(
+                        JSON.stringify({ event: 'listening' }),
+                        '*'
+                      );
+                      playingIframeRef.current?.contentWindow?.postMessage(
+                        JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }),
+                        '*'
+                      );
+                    } catch (e) {}
+                  }}
                   className="w-full h-full absolute inset-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  sandbox="allow-same-origin allow-scripts allow-presentation allow-popups"
                 ></iframe>
               )}
             </div>
 
+            {/* Success Celebration Toast when completed */}
+            {justCompletedId === playingVideo.id && (
+              <div className="bg-emerald-600/90 text-white p-3.5 rounded-xl border border-emerald-400 shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                <span className="material-symbols-outlined text-2xl text-emerald-200">celebration</span>
+                <div className="text-left text-xs md:text-sm">
+                  <p className="font-bold">🎉 Selamat! Anda telah menonton video sampai selesai.</p>
+                  <p className="text-emerald-100">Materi ini telah otomatis dicentang tuntas dan progress belajar Anda bertambah.</p>
+                </div>
+              </div>
+            )}
+
             {/* Title & Description Container */}
-            <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl text-left">
-              <h2 className="text-xl md:text-2xl font-bold text-white mb-2 leading-snug">{playingVideo.title}</h2>
-              <p className="text-sm md:text-base text-slate-300 leading-relaxed whitespace-pre-wrap">{playingVideo.description}</p>
+            <div className="bg-slate-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-5 md:p-6 shadow-xl text-left flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="max-w-xl">
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-sky-400 mb-1">
+                  Topik: {playingVideo.topic || 'Materi Belajar'}
+                </div>
+                <h2 className="text-lg md:text-xl font-bold text-white mb-1.5 leading-snug">{playingVideo.title}</h2>
+                <p className="text-xs md:text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{playingVideo.description}</p>
+              </div>
+
+              {/* Tombol Konfirmasi Manual jika platform selain YouTube/MP4 (misal TikTok/Instagram) */}
+              {playingVideo.media_platform !== 'local_video' && !playingVideo.external_url?.includes('youtube.com') && !playingVideo.external_url?.includes('youtu.be') && (
+                <div className="shrink-0 w-full md:w-auto pt-2 md:pt-0 border-t md:border-t-0 border-white/10">
+                  {modules.find(m => m.id === playingVideo.id)?.completed ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-500/20 px-4 py-2 rounded-xl border border-emerald-500/30">
+                      <span className="material-symbols-outlined text-base">verified</span>
+                      <span>Sudah Tuntas</span>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => markModuleCompleted(playingVideo)}
+                      className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base">check_circle</span>
+                      <span>Saya Sudah Nonton Sampai Selesai</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Peringatan Jika Mengklik Centang Sebelum Nonton Video */}
+      {watchNoticeModal.show && createPortal(
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 text-center animate-in zoom-in-95">
+            <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 dark:bg-amber-950/40 text-amber-500 rounded-2xl flex items-center justify-center shadow-inner">
+              <span className="material-symbols-outlined text-3xl">play_circle</span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Tonton Video Terlebih Dahulu</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
+              Untuk mencentang materi <span className="font-semibold text-primary dark:text-sky-400">"{watchNoticeModal.module?.title}"</span>, Anda harus menonton video pembelajarannya sampai selesai terlebih dahulu.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => setWatchNoticeModal({ show: false, module: null })}
+                className="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                Nanti Saja
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const modToPlay = watchNoticeModal.module;
+                  setWatchNoticeModal({ show: false, module: null });
+                  handleMediaClick(modToPlay);
+                }}
+                className="bg-[#004A74] hover:bg-[#003857] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 hover:scale-105 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">play_arrow</span>
+                <span>Tonton Sekarang</span>
+              </button>
             </div>
           </div>
         </div>,
