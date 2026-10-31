@@ -397,8 +397,8 @@ const PublicDashboard = () => {
       <nav className="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-7xl z-50 flex justify-between items-center h-14 md:h-16 px-5 md:px-8 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-full border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-500">
         <div className="flex items-center gap-gutter">
           <div className="flex items-center gap-3 md:gap-4">
-            <img alt="Logo UGM" className="h-7 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkTLwI5PyjJ_qSLp20QPfwAedU9rwm7Zrs_IpuEJ-VfpxE3cKRXpMtcrtcHd04Q7yXjIEKv5XZ_l4v4e7aNrbs2NRf4C2SBiKylN5G7A_MFMXJc7umvcwOdbV6sSwdVBqEcN90C37s43LSfNdyfYJ_a_1mP4N55M5ZOJ5L55Ahkh_6HZO51GUnB2ZOeGFKSf06SBG1hsNTUOCc_EdOLZevdjsL0ilvAN8D45-ma9EghLfi9g5nOAkFqjLsRjPsTMPqhUvVH01hQjo" />
-            <img alt="Logo Kementrian" className="h-7 w-auto drop-shadow-sm transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtJOaXHmbBoEsx_kvjzbBODYsUgAfDOOCJuJ-qbYSd8p1Y18kmkfMXCz8t7s6S9tlfu7OKVOXo_KNsAKK3Sh1_Af2Bs4q1F6yRw-FTX2j8fFC8nSTt9Qm7cCQJEqlwt9bjGQm2TITwNIHBzR4-G44UCp-0_csYhQFULCodO-iM1r0apaiFarIT_o0xzQ8F-Ex5ienUggc1LrdzHFfmUdi3M2FYLwoPzHRiLfATqJiidQJ-Yy95EhaYQdZy2y1RAU32wtHD8Rfyd14" />
+            <img alt="Logo UGM" className="h-7 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="/logo-ugm.png" />
+            <img alt="Logo Kementrian" className="h-7 w-auto drop-shadow-sm transition-all duration-500" src="/logo-kementerian.png" />
           </div>
         </div>
 
@@ -474,7 +474,7 @@ const PublicDashboard = () => {
           </div>
 
           <div className="md:w-1/2 w-full mt-12 md:mt-0 relative h-[450px] lg:h-[550px] rounded-[2rem] overflow-hidden group transition-colors duration-500 [mask-image:linear-gradient(to_bottom,transparent_0%,black_70%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_70%)] md:[mask-image:linear-gradient(to_right,transparent_0%,black_70%)] md:[-webkit-mask-image:linear-gradient(to_right,transparent_0%,black_70%)]">
-            <div className="absolute inset-0 bg-cover bg-center w-full h-full transform group-hover:scale-105 transition-all duration-700 dark:brightness-[0.6]" style={{ backgroundImage: `url('${siteSettings.hero_image_url || 'https://res.cloudinary.com/jneu85aj/image/upload/v1783995884/_2926_Hampir-40-Ribu-Anak-di-Papua-Selatan-Tak-Sekolah--Gubernur-Apolo--Ancaman-Serius-bagi-Masa-Depan.png-2_i7rorg.jpg'}')` }}></div>
+            <div className="absolute inset-0 bg-cover bg-center w-full h-full transform group-hover:scale-105 transition-all duration-700 dark:brightness-[0.6]" style={{ backgroundImage: `url('${siteSettings.hero_image_url || '/hero-default.jpg'}')` }}></div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-20"></div>
           </div>
         </section>
@@ -819,7 +819,7 @@ const PublicDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-6">
             {(showAllKisah ? kisahInspiratif : kisahInspiratif.slice(0, 4)).map(mod => (
               <div key={mod.id} className="relative bg-white dark:bg-slate-900 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.35)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.45)] dark:shadow-[0_10px_40px_rgba(255,255,255,0.03)] dark:hover:shadow-[0_20px_60px_rgba(255,255,255,0.08)] rounded-2xl overflow-hidden hover:-translate-y-1 transition-all duration-500 flex flex-col group cursor-pointer aspect-[4/3] md:aspect-square" onClick={() => handleMediaClick(mod)}>
-                <div className="absolute inset-0 bg-cover bg-center w-full h-full group-hover:scale-110 transition-transform duration-700 z-0" style={{ backgroundImage: `url('${mod.image_url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop'}')` }}></div>
+                <div className="absolute inset-0 bg-cover bg-center w-full h-full group-hover:scale-110 transition-transform duration-700 z-0" style={{ backgroundImage: `url('${mod.image_url || '/hero-default.jpg'}')` }}></div>
                 {mod.image_source && (
                   <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-[9px] text-white/80 z-20 pointer-events-none shadow-sm">
                     Sumber: {mod.image_source}
@@ -857,9 +857,9 @@ const PublicDashboard = () => {
             
             {/* Kotak Liquid Glass Sebenarnya */}
             <div className="bg-white/60 dark:bg-white/10 backdrop-blur-xl rounded-full px-5 py-3 md:px-8 md:py-3.5 flex flex-wrap md:flex-nowrap items-center gap-4 md:gap-6 border border-white/60 dark:border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.08)] transition-colors duration-500 w-fit">
-              <img alt="Logo UGM" className="h-8 md:h-9 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkTLwI5PyjJ_qSLp20QPfwAedU9rwm7Zrs_IpuEJ-VfpxE3cKRXpMtcrtcHd04Q7yXjIEKv5XZ_l4v4e7aNrbs2NRf4C2SBiKylN5G7A_MFMXJc7umvcwOdbV6sSwdVBqEcN90C37s43LSfNdyfYJ_a_1mP4N55M5ZOJ5L55Ahkh_6HZO51GUnB2ZOeGFKSf06SBG1hsNTUOCc_EdOLZevdjsL0ilvAN8D45-ma9EghLfi9g5nOAkFqjLsRjPsTMPqhUvVH01hQjo" />
+              <img alt="Logo UGM" className="h-8 md:h-9 w-auto drop-shadow-sm dark:brightness-0 dark:invert transition-all duration-500" src="/logo-ugm.png" />
               <div className="w-px h-8 md:h-10 bg-slate-300 dark:bg-white/30 transition-colors duration-500"></div>
-              <img alt="Logo Kementrian" className="h-8 md:h-9 w-auto drop-shadow-sm transition-all duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtJOaXHmbBoEsx_kvjzbBODYsUgAfDOOCJuJ-qbYSd8p1Y18kmkfMXCz8t7s6S9tlfu7OKVOXo_KNsAKK3Sh1_Af2Bs4q1F6yRw-FTX2j8fFC8nSTt9Qm7cCQJEqlwt9bjGQm2TITwNIHBzR4-G44UCp-0_csYhQFULCodO-iM1r0apaiFarIT_o0xzQ8F-Ex5ienUggc1LrdzHFfmUdi3M2FYLwoPzHRiLfATqJiidQJ-Yy95EhaYQdZy2y1RAU32wtHD8Rfyd14" />
+              <img alt="Logo Kementrian" className="h-8 md:h-9 w-auto drop-shadow-sm transition-all duration-500" src="/logo-kementerian.png" />
             </div>
 
             <p className="text-slate-700 dark:text-white/80 text-sm leading-relaxed mt-2 transition-colors duration-500">
