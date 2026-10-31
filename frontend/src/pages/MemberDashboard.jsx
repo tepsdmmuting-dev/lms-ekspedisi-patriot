@@ -660,12 +660,15 @@ const MemberDashboard = () => {
                               {topicProgress === 100 ? (
                                 <button
                                   type="button"
-                                  onClick={() => setRecapModal({
-                                    show: true,
-                                    topicName: currentTopic,
-                                    topicMeta,
-                                    modules: topicModules
-                                  })}
+                                  onClick={() => {
+                                    fetchProgress();
+                                    setRecapModal({
+                                      show: true,
+                                      topicName: currentTopic,
+                                      topicMeta,
+                                      modules: topicModules
+                                    });
+                                  }}
                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-600/25 hover:shadow-emerald-600/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0 cursor-pointer"
                                   title="Cetak Rekapitulasi Hasil Belajar Topik Ini"
                                 >
@@ -989,10 +992,15 @@ const MemberDashboard = () => {
             setModuleQuizzes(prev => {
               const updated = { ...prev };
               Object.keys(updated).forEach(mid => {
-                updated[mid] = updated[mid].map(q => q.id === activeQuiz.id ? { ...q, my_score: score } : q);
+                updated[mid] = (updated[mid] || []).map(q => q.id === activeQuiz.id ? { ...q, my_score: score } : q);
               });
               return updated;
             });
+            setModules(prev => prev.map(m => ({
+              ...m,
+              quizzes: (m.quizzes || []).map(q => q.id === activeQuiz.id ? { ...q, my_score: score } : q)
+            })));
+            fetchProgress();
           }}
         />
       )}
@@ -1162,7 +1170,7 @@ const MemberDashboard = () => {
         onClose={() => setRecapModal(prev => ({ ...prev, show: false }))}
         topicName={recapModal.topicName}
         topicMeta={recapModal.topicMeta}
-        modules={recapModal.modules}
+        modules={modules.filter(m => (m.topic || 'Lainnya').toLowerCase() === (recapModal.topicName || '').toLowerCase())}
         moduleQuizzes={moduleQuizzes}
         user={user}
       />

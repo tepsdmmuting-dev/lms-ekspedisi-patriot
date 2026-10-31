@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -24,6 +24,41 @@ const TopicRecapModal = ({
   moduleQuizzes = {},
   user
 }) => {
+  const [liveQuizzes, setLiveQuizzes] = useState({});
+
+  // Auto-fetch fresh quiz scores from server whenever the modal opens
+  useEffect(() => {
+    if (!isOpen || !modules || modules.length === 0) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    let isMounted = true;
+    const fetchFreshScores = async () => {
+      try {
+        const map = {};
+        await Promise.all(modules.map(async (m) => {
+          try {
+            const res = await fetch(`/api/quizzes/module/${m.id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              map[m.id] = data;
+            }
+          } catch (e) {}
+        }));
+        if (isMounted) {
+          setLiveQuizzes(map);
+        }
+      } catch (err) {
+        console.error('Error fetching fresh quiz scores in recap:', err);
+      }
+    };
+
+    fetchFreshScores();
+    return () => { isMounted = false; };
+  }, [isOpen, modules]);
+
   if (!isOpen) return null;
 
   // Group modules by module_name
@@ -47,14 +82,31 @@ const TopicRecapModal = ({
     const materiList = moduleGroups[modName];
     const completedCount = materiList.filter(m => m.completed).length;
 
-    // Collect all quizzes across materiList in this module group, deduplicated by id
+    // Collect all quizzes across materiList in this module group, merging scores intelligently
     const quizzesMap = new Map();
     materiList.forEach(m => {
-      (m.quizzes || []).forEach(q => {
-        if (!quizzesMap.has(q.id)) quizzesMap.set(q.id, q);
-      });
-      (moduleQuizzes[m.id] || []).forEach(q => {
-        if (!quizzesMap.has(q.id)) quizzesMap.set(q.id, q);
+      const candidates = [
+        ...(liveQuizzes[m.id] || []),
+        ...(moduleQuizzes[m.id] || []),
+        ...(m.quizzes || [])
+      ];
+
+      candidates.forEach(q => {
+        if (!q || !q.id) return;
+        if (!quizzesMap.has(q.id)) {
+          quizzesMap.set(q.id, { ...q });
+        } else {
+          const current = quizzesMap.get(q.id);
+          const currentHasScore = current.my_score !== null && current.my_score !== undefined;
+          const candidateHasScore = q.my_score !== null && q.my_score !== undefined;
+
+          if (!currentHasScore && candidateHasScore) {
+            quizzesMap.set(q.id, { ...current, ...q });
+          } else if (currentHasScore && candidateHasScore) {
+            const maxScore = Math.max(Number(current.my_score), Number(q.my_score));
+            quizzesMap.set(q.id, { ...current, ...q, my_score: maxScore });
+          }
+        }
       });
     });
 
@@ -62,11 +114,11 @@ const TopicRecapModal = ({
     const preTest = quizzes.find(q => q.type === 'pre_test');
     const postTest = quizzes.find(q => q.type === 'post_test');
 
-    const preScore = preTest?.my_score !== null && preTest?.my_score !== undefined
+    const preScore = preTest && preTest.my_score !== null && preTest.my_score !== undefined
       ? Number(preTest.my_score)
       : null;
 
-    const postScore = postTest?.my_score !== null && postTest?.my_score !== undefined
+    const postScore = postTest && postTest.my_score !== null && postTest.my_score !== undefined
       ? Number(postTest.my_score)
       : null;
 
@@ -297,7 +349,9 @@ const TopicRecapModal = ({
                     <td className="py-2.5 px-3 text-center border-r border-slate-200">
                       {me.hasPreTest ? (
                         me.preScore !== null ? (
-                          <span className="font-bold text-slate-700">{me.preScore}</span>
+                          <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300">
+                            {me.preScore} / 100
+                          </span>
                         ) : (
                           <span className="text-[11px] text-slate-400 italic">Belum Ujian</span>
                         )
