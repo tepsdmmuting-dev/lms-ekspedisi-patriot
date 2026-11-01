@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import CloudinaryUpload from './CloudinaryUpload';
 
 // Quiz Builder for a single module
 const QuizBuilder = ({ module, onClose, initialType = null }) => {
@@ -324,7 +325,7 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
                           <div className="flex items-center gap-3">
                             <label className="cursor-pointer text-xs font-bold text-primary dark:text-blue-400 hover:underline flex items-center gap-1">
                               <span className="material-symbols-outlined text-sm">cached</span>
-                              <span>Ganti Gambar</span>
+                              <span>Ganti (Lokal)</span>
                               <input
                                 type="file"
                                 accept="image/*"
@@ -332,17 +333,23 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
                                 className="hidden"
                               />
                             </label>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
+                            <CloudinaryUpload
+                              onUploadSuccess={(url) => updateQuestion(qIdx, 'image_url', url)}
+                              buttonText="Ganti (Cloudinary)"
+                              className="cursor-pointer text-xs font-bold text-secondary dark:text-yellow-400 hover:underline flex items-center gap-1 bg-transparent p-0"
+                            />
                           </div>
                         </div>
                       </div>
                     ) : (
                       /* Form Upload atau Tempel URL */
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <label className="cursor-pointer px-4 py-2 rounded-xl border border-dashed border-primary/50 dark:border-blue-400/50 bg-primary/5 dark:bg-blue-900/20 hover:bg-primary/10 text-primary dark:text-blue-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0">
+                        <label className="cursor-pointer px-3.5 py-2 rounded-xl border border-dashed border-primary/50 dark:border-blue-400/50 bg-primary/5 dark:bg-blue-900/20 hover:bg-primary/10 text-primary dark:text-blue-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0">
                           <span className="material-symbols-outlined text-base">
                             {uploadingIdx === qIdx ? 'hourglass_top' : 'add_photo_alternate'}
                           </span>
-                          <span>{uploadingIdx === qIdx ? 'Mengunggah...' : 'Upload File Gambar'}</span>
+                          <span>{uploadingIdx === qIdx ? 'Mengunggah...' : 'Upload Lokal'}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -351,12 +358,17 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
                             className="hidden"
                           />
                         </label>
+                        <CloudinaryUpload
+                          onUploadSuccess={(url) => updateQuestion(qIdx, 'image_url', url)}
+                          buttonText="Cloudinary"
+                          className="px-3.5 py-2 rounded-xl border border-dashed border-secondary/60 dark:border-yellow-400/50 bg-secondary/10 dark:bg-yellow-400/10 hover:bg-secondary/20 text-secondary dark:text-yellow-400 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                        />
                         <span className="text-[11px] text-slate-400 dark:text-slate-500 text-center sm:text-left font-medium">atau</span>
                         <input
                           type="text"
                           value={q.image_url || ''}
                           onChange={(e) => updateQuestion(qIdx, 'image_url', e.target.value)}
-                          placeholder="Tempel link URL gambar (https://... atau /uploads/images/...)"
+                          placeholder="Tempel link URL gambar (https://...)"
                           className="flex-1 px-3 py-2 bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs rounded-xl text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary dark:focus:ring-blue-400 shadow-xs"
                         />
                       </div>

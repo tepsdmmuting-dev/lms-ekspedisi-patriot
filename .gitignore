@@ -17,3 +17,5 @@ patriot_industrial_lms/
 public_dashboard_ekspedisi_patriot/
 supabase_dump.sql
 setup_*.py
+backend/uploads/*
+!backend/uploads/**/.gitkeep

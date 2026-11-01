@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const CloudinaryUpload = ({ onUploadSuccess, buttonText = "Unggah Gambar" }) => {
+const CloudinaryUpload = ({ onUploadSuccess, buttonText = "Unggah Gambar", className }) => {
   const widgetRef = useRef(null);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ const CloudinaryUpload = ({ onUploadSuccess, buttonText = "Unggah Gambar" }) => 
     <button
       type="button"
       onClick={openWidget}
-      className="bg-secondary/10 hover:bg-secondary/20 text-secondary dark:bg-yellow-400/10 dark:hover:bg-yellow-400/20 dark:text-yellow-400 font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+      className={className || "bg-secondary/10 hover:bg-secondary/20 text-secondary dark:bg-yellow-400/10 dark:hover:bg-yellow-400/20 dark:text-yellow-400 font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"}
     >
       <span className="material-symbols-outlined text-sm">cloud_upload</span>
       {buttonText}
