@@ -137,19 +137,63 @@ router.post('/users/:id/reset-progress', [authMiddleware, adminMiddleware], asyn
   }
 });
 
+// @route   POST api/admin/users/:id/reset-password
+// @desc    Reset or update user password
+// @access  Private (Admin)
+router.post('/users/:id/reset-password', [authMiddleware, adminMiddleware], async (req, res) => {
+  const userId = req.params.id;
+  const { password } = req.body;
+  const newPassword = (password && password.trim() !== '') ? password.trim() : 'password123';
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    const result = await db.query(
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, name, email',
+      [hashedPassword, userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    
+    res.json({ 
+      msg: 'Password berhasil diperbarui', 
+      user: result.rows[0],
+      new_password: newPassword
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   PUT api/admin/users/:id
-// @desc    Update user details
+// @desc    Update user details (and optionally password)
 // @access  Private (Admin)
 router.put('/users/:id', [authMiddleware, adminMiddleware], async (req, res) => {
-  const { name, email, role, region, district } = req.body;
+  const { name, email, role, region, district, password } = req.body;
   const userId = req.params.id;
   try {
-    const result = await db.query(
-      `UPDATE users 
-       SET name = $1, email = $2, role = $3, region = $4, district = $5, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $6 RETURNING id, name, email, role, region, district`,
-      [name, email, role || 'trainee', region, district, userId]
-    );
+    let result;
+    if (password && password.trim() !== '') {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password.trim(), salt);
+      result = await db.query(
+        `UPDATE users 
+         SET name = $1, email = $2, role = $3, region = $4, district = $5, password_hash = $6, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $7 RETURNING id, name, email, role, region, district`,
+        [name, email, role || 'trainee', region, district, hashedPassword, userId]
+      );
+    } else {
+      result = await db.query(
+        `UPDATE users 
+         SET name = $1, email = $2, role = $3, region = $4, district = $5, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $6 RETURNING id, name, email, role, region, district`,
+        [name, email, role || 'trainee', region, district, userId]
+      );
+    }
     if (result.rows.length === 0) {
       return res.status(404).json({ msg: 'User not found' });
     }
