@@ -344,13 +344,13 @@ router.post('/curriculum/import', [authMiddleware, adminMiddleware], async (req,
 
         if (existingQues.rows.length > 0) {
           await queryFn(
-            'UPDATE quiz_questions SET options = $1, correct_answer_index = $2 WHERE id = $3',
-            [JSON.stringify(ques.options), ques.correct_answer_index, existingQues.rows[0].id]
+            'UPDATE quiz_questions SET options = $1, correct_answer_index = $2, image_url = $3 WHERE id = $4',
+            [JSON.stringify(ques.options), ques.correct_answer_index, ques.image_url || null, existingQues.rows[0].id]
           );
         } else {
           await queryFn(
-            'INSERT INTO quiz_questions (quiz_id, question_text, options, correct_answer_index) VALUES ($1, $2, $3, $4)',
-            [newQuizId, ques.question_text, JSON.stringify(ques.options), ques.correct_answer_index]
+            'INSERT INTO quiz_questions (quiz_id, question_text, image_url, options, correct_answer_index) VALUES ($1, $2, $3, $4, $5)',
+            [newQuizId, ques.question_text, ques.image_url || null, JSON.stringify(ques.options), ques.correct_answer_index]
           );
         }
       }

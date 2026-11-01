@@ -5,7 +5,8 @@ import { createPortal } from 'react-dom';
 const QuizBuilder = ({ module, onClose, initialType = null }) => {
   const [quizzes, setQuizzes] = useState([]);
   const [activeQuiz, setActiveQuiz] = useState(null); // { type: 'pre_test'|'post_test', id: null|number }
-  const [questions, setQuestions] = useState([]); // [ { question_text, options: ['A','B','C','D'], correct_answer_index: 0 } ]
+  const [questions, setQuestions] = useState([]); // [ { question_text, image_url, options: ['A','B','C','D'], correct_answer_index: 0 } ]
+  const [uploadingIdx, setUploadingIdx] = useState(null);
 
   useEffect(() => {
     const init = async () => {
@@ -26,7 +27,7 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
             if (existing) {
               fetchQuestions(existing.id);
             } else {
-              setQuestions([{ question_text: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
+              setQuestions([{ question_text: '', image_url: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
             }
           }
         }
@@ -64,7 +65,7 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
     if (existing) {
       fetchQuestions(existing.id);
     } else {
-      setQuestions([{ question_text: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
+      setQuestions([{ question_text: '', image_url: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
     }
   };
 
@@ -75,19 +76,65 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
     if (res.ok) {
       const data = await res.json();
       setQuestions(data.questions.length > 0 ? data.questions.map(q => ({
-        ...q, options: q.options
-      })) : [{ question_text: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
+        ...q,
+        image_url: q.image_url || '',
+        options: q.options || ['', '', '', '']
+      })) : [{ question_text: '', image_url: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
     }
   };
 
   const addQuestion = () => {
-    setQuestions([...questions, { question_text: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
+    setQuestions([...questions, { question_text: '', image_url: '', options: ['', '', '', ''], correct_answer_index: 0 }]);
   };
 
   const updateQuestion = (idx, field, value) => {
     const updated = [...questions];
     updated[idx] = { ...updated[idx], [field]: value };
     setQuestions(updated);
+  };
+
+  const handleImageFileChange = async (qIdx, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Ukuran file gambar maksimal 10MB.');
+      return;
+    }
+
+    setUploadingIdx(qIdx);
+    const token = localStorage.getItem('token');
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        updateQuestion(qIdx, 'image_url', data.url);
+      } else {
+        // Fallback to FileReader base64 Data URL (e.g. offline / serverless)
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+          updateQuestion(qIdx, 'image_url', loadEvent.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        updateQuestion(qIdx, 'image_url', loadEvent.target.result);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingIdx(null);
+      e.target.value = '';
+    }
   };
 
   const updateOption = (qIdx, oIdx, value) => {
@@ -238,6 +285,82 @@ const QuizBuilder = ({ module, onClose, initialType = null }) => {
                       className="w-full px-4 py-3 bg-white/70 dark:bg-slate-900/70 border border-white/60 dark:border-slate-700/60 shadow-inner text-slate-800 dark:text-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary dark:focus:ring-blue-400 dark:focus:border-blue-400 outline-none transition-all"
                       placeholder="Tulis pertanyaan di sini..."
                     />
+                  </div>
+
+                  {/* Sisipkan Gambar Soal */}
+                  <div className="space-y-2 p-3.5 bg-slate-50/70 dark:bg-slate-900/50 rounded-xl border border-slate-200/80 dark:border-slate-700/60">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-base text-primary dark:text-blue-400">image</span>
+                        <span>Gambar Soal (Opsional)</span>
+                      </label>
+                      {q.image_url && (
+                        <button
+                          type="button"
+                          onClick={() => updateQuestion(qIdx, 'image_url', '')}
+                          className="text-xs text-error dark:text-red-400 hover:underline flex items-center gap-1 font-semibold"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                          <span>Hapus Gambar</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {q.image_url ? (
+                      /* Preview Gambar Terpasang */
+                      <div className="relative rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-2.5 flex flex-col sm:flex-row items-center gap-3">
+                        <div className="h-28 w-44 rounded-lg overflow-hidden bg-black/5 dark:bg-black/30 border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center">
+                          <img
+                            src={q.image_url}
+                            alt="Preview Soal"
+                            className="max-h-full max-w-full object-contain"
+                            onError={(e) => { e.target.alt = 'Gagal memuat gambar'; }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 text-xs text-slate-600 dark:text-slate-400 w-full">
+                          <p className="font-mono truncate text-[11px] bg-slate-100 dark:bg-slate-900 p-1.5 rounded border border-slate-200 dark:border-slate-700 select-all mb-2">
+                            {q.image_url}
+                          </p>
+                          <div className="flex items-center gap-3">
+                            <label className="cursor-pointer text-xs font-bold text-primary dark:text-blue-400 hover:underline flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm">cached</span>
+                              <span>Ganti Gambar</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleImageFileChange(qIdx, e)}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Form Upload atau Tempel URL */
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <label className="cursor-pointer px-4 py-2 rounded-xl border border-dashed border-primary/50 dark:border-blue-400/50 bg-primary/5 dark:bg-blue-900/20 hover:bg-primary/10 text-primary dark:text-blue-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0">
+                          <span className="material-symbols-outlined text-base">
+                            {uploadingIdx === qIdx ? 'hourglass_top' : 'add_photo_alternate'}
+                          </span>
+                          <span>{uploadingIdx === qIdx ? 'Mengunggah...' : 'Upload File Gambar'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={uploadingIdx === qIdx}
+                            onChange={(e) => handleImageFileChange(qIdx, e)}
+                            className="hidden"
+                          />
+                        </label>
+                        <span className="text-[11px] text-slate-400 dark:text-slate-500 text-center sm:text-left font-medium">atau</span>
+                        <input
+                          type="text"
+                          value={q.image_url || ''}
+                          onChange={(e) => updateQuestion(qIdx, 'image_url', e.target.value)}
+                          placeholder="Tempel link URL gambar (https://... atau /uploads/images/...)"
+                          className="flex-1 px-3 py-2 bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 text-xs rounded-xl text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-primary dark:focus:ring-blue-400 shadow-xs"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-label-sm font-medium dark:text-slate-300">Pilihan Jawaban (pilih yang benar)</label>

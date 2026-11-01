@@ -177,6 +177,18 @@ const QuizModal = ({ quiz, onClose, onSubmit }) => {
                     {currentQ.question_text}
                   </h3>
                 </div>
+
+                {/* Question Image (if attached) */}
+                {currentQ.image_url && (
+                  <div className="mt-4 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/60 p-2.5 flex justify-center shadow-xs">
+                    <img
+                      src={currentQ.image_url}
+                      alt={`Gambar Soal #${currentIndex + 1}`}
+                      className="max-h-64 sm:max-h-80 w-auto max-w-full object-contain rounded-xl shadow-xs"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Options */}

@@ -23,6 +23,7 @@ const ensureSchema = async () => {
     await pool.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS module_name VARCHAR(255) DEFAULT 'Modul 1'");
     await pool.query("ALTER TABLE modules ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 1");
     await pool.query("ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS order_index INTEGER DEFAULT 0");
+    await pool.query("ALTER TABLE quiz_questions ADD COLUMN IF NOT EXISTS image_url TEXT");
     try {
       await pool.query("ALTER TYPE media_platform_type ADD VALUE IF NOT EXISTS 'local_video'");
     } catch (e) {}

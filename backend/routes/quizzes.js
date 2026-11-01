@@ -56,7 +56,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const quiz = await db.query('SELECT * FROM quizzes WHERE id = $1', [quizId]);
     if (quiz.rows.length === 0) return res.status(404).json({ msg: 'Quiz not found' });
     
-    const questions = await db.query('SELECT id, question_text, options, correct_answer_index FROM quiz_questions WHERE quiz_id = $1', [quizId]);
+    const questions = await db.query('SELECT id, question_text, image_url, options, correct_answer_index FROM quiz_questions WHERE quiz_id = $1', [quizId]);
     
     res.json({ ...quiz.rows[0], questions: questions.rows });
   } catch (err) {
@@ -70,7 +70,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // @access  Private (Admin)
 router.post('/:id/questions', [authMiddleware, adminMiddleware], async (req, res) => {
   const quizId = req.params.id;
-  const { questions } = req.body; // array of { question_text, options, correct_answer_index }
+  const { questions } = req.body; // array of { question_text, image_url, options, correct_answer_index }
   
   try {
     await db.query('DELETE FROM quiz_questions WHERE quiz_id = $1', [quizId]);
@@ -78,8 +78,8 @@ router.post('/:id/questions', [authMiddleware, adminMiddleware], async (req, res
     if (questions && questions.length > 0) {
       for (let q of questions) {
         await db.query(
-          'INSERT INTO quiz_questions (quiz_id, question_text, options, correct_answer_index) VALUES ($1, $2, $3, $4)',
-          [quizId, q.question_text, JSON.stringify(q.options), q.correct_answer_index]
+          'INSERT INTO quiz_questions (quiz_id, question_text, image_url, options, correct_answer_index) VALUES ($1, $2, $3, $4, $5)',
+          [quizId, q.question_text, q.image_url || null, JSON.stringify(q.options), q.correct_answer_index]
         );
       }
     }
