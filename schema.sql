@@ -1,5 +1,5 @@
 -- Enum for media platform
-CREATE TYPE media_platform_type AS ENUM ('youtube', 'tiktok', 'instagram', 'gdrive_pdf');
+CREATE TYPE media_platform_type AS ENUM ('youtube', 'tiktok', 'instagram', 'gdrive_pdf', 'local_video', 'local_pdf');
 
 -- Enum for user role
 CREATE TYPE user_role_type AS ENUM ('trainee', 'admin', 'co_admin');
@@ -87,6 +87,7 @@ CREATE TABLE quizzes (
     module_id INTEGER REFERENCES modules(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     type quiz_type NOT NULL,
+    order_index INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (module_id, type)
 );
@@ -96,6 +97,7 @@ CREATE TABLE quiz_questions (
     id SERIAL PRIMARY KEY,
     quiz_id INTEGER REFERENCES quizzes(id) ON DELETE CASCADE,
     question_text TEXT NOT NULL,
+    image_url TEXT,
     options JSONB NOT NULL, -- Array of strings e.g. ["A", "B", "C", "D"]
     correct_answer_index INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

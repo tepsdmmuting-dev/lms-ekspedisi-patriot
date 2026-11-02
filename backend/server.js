@@ -46,7 +46,7 @@ if (fs.existsSync(frontendDist)) {
 const PORT = process.env.PORT || 5000;
 
 // Do not call app.listen in serverless cloud environment (Vercel)
-if (process.env.NODE_ENV !== 'production') {
+if (!process.env.VERCEL) {
   app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 }
 
