@@ -16,11 +16,17 @@ Setelah server ini aktif, seluruh komputer siswa, laptop guru, dan tablet yang t
 
 ## Langkah 1: Persiapan Software (Hanya 1x Saja)
 
-### 1.1. Install Node.js (LTS)
+### 1.1. Download Repository dari GitHub
+1. Di komputer server sekolah, buka browser dan buka URL repositori:
+   `https://github.com/tepsdmmuting-dev/lms-ekspedisi-patriot`
+2. Klik tombol hijau **Code** -> pilih **Download ZIP**.
+3. Ekstrak file ZIP tersebut ke direktori yang Anda inginkan (misalnya di `C:\LMS_Ekspedisi_Patriot`).
+
+### 1.2. Install Node.js (LTS)
 1. Unduh installer **Node.js LTS** untuk Windows dari website resmi: [https://nodejs.org/](https://nodejs.org/)
 2. Jalankan file `.msi` yang telah diunduh, klik **Next** hingga selesai (biarkan settingan default).
 
-### 1.2. Install PostgreSQL Database
+### 1.3. Install PostgreSQL Database
 1. Unduh installer **PostgreSQL for Windows** (versi 14, 15, atau 16) dari: [https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
 2. Jalankan installer:
    - Saat diminta password untuk user `postgres`, masukkan password (misalnya: `postgres` atau password pilihan sekolah). **Catat password ini.**
@@ -123,3 +129,4 @@ Cukup **Double Click** (klik dua kali) file `START_SERVER_WINDOWS.bat`:
 - **Modul PDF Lokal**: Dokumen buku panduan berekstensi `.pdf` tersimpan di `backend/uploads/documents/`.
 - **Gambar Kuis Lokal**: Gambar pendukung soal Pre-Test & Post-Test tersimpan di `backend/uploads/images/`.
 - **Ekspor / Impor Kurikulum**: Materi dan kuis dapat diekspor menjadi file `.json` lalu dipindahkan ke komputer sekolah lain tanpa internet.
+
