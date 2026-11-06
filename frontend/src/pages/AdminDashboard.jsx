@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggle';
 import CloudinaryUpload from '../components/CloudinaryUpload';
 import SiteSettings from '../components/SiteSettings';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import { TOPICS_LIST } from '../constants/topics';
 
 const AdminDashboard = () => {
@@ -49,6 +50,9 @@ const AdminDashboard = () => {
   // Rename module group state
   const [renameModal, setRenameModal] = useState({ show: false, topic: '', oldName: '', newName: '' });
   const [isRenaming, setIsRenaming] = useState(false);
+
+  // Admin Change Password Modal
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
 
   const handleSaveRenameModule = async () => {
     if (!renameModal.newName || !renameModal.newName.trim()) return;
@@ -677,7 +681,16 @@ const AdminDashboard = () => {
                <p className="text-xs text-on-surface-variant dark:text-slate-400 truncate transition-colors duration-500">Admin Panel</p>
              </div>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-4 text-error dark:text-red-400 px-4 py-3.5 hover:bg-error-container/50 dark:hover:bg-red-900/30 transition-all font-label-lg text-label-lg font-medium rounded-xl w-full text-left">
+          <button 
+            type="button"
+            onClick={() => setShowAdminPasswordModal(true)} 
+            className="flex items-center gap-2.5 text-slate-700 dark:text-slate-200 px-3.5 py-2.5 bg-slate-100 hover:bg-primary/10 hover:text-primary dark:bg-slate-800 dark:hover:bg-slate-700/80 dark:hover:text-yellow-400 border border-slate-200 dark:border-slate-700 rounded-xl w-full text-left transition-colors cursor-pointer text-xs font-semibold shadow-2xs"
+            title="Ubah kata sandi akun Administrator"
+          >
+            <span className="material-symbols-outlined text-[18px] text-primary dark:text-yellow-400">key</span>
+            <span>Ubah Password Admin</span>
+          </button>
+          <button onClick={handleLogout} className="flex items-center gap-4 text-error dark:text-red-400 px-4 py-3 hover:bg-error-container/50 dark:hover:bg-red-900/30 transition-all font-label-lg text-label-lg font-medium rounded-xl w-full text-left">
             <span className="material-symbols-outlined text-[22px]">logout</span> Logout
           </button>
         </div>
@@ -1133,6 +1146,12 @@ const AdminDashboard = () => {
             document.body
           )}
 
+          <ChangePasswordModal 
+            isOpen={showAdminPasswordModal} 
+            onClose={() => setShowAdminPasswordModal(false)} 
+            userName={user?.email ? `${user.name || 'Administrator'} (${user.email})` : 'Administrator'} 
+          />
+
           {renameModal.show && createPortal(
             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
@@ -1204,6 +1223,12 @@ const AdminDashboard = () => {
             </div>,
             document.body
           )}
+
+          <ChangePasswordModal 
+            isOpen={showAdminPasswordModal} 
+            onClose={() => setShowAdminPasswordModal(false)} 
+            userName={user?.email ? `${user.name || 'Administrator'} (${user.email})` : 'Administrator'} 
+          />
 
           {activeTab === 'users' && (
             <UserManagement currentUserRole={user.role} />

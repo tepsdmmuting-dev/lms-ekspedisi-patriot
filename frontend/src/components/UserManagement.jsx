@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import ChangePasswordModal from './ChangePasswordModal';
 import { DEFAULT_TOPICS } from '../constants/topics';
 
 const UserManagement = ({ currentUserRole }) => {
@@ -24,6 +25,7 @@ const UserManagement = ({ currentUserRole }) => {
   const [showCustomPassword, setShowCustomPassword] = useState(false);
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('');
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [showMyPasswordModal, setShowMyPasswordModal] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -530,6 +532,40 @@ const UserManagement = ({ currentUserRole }) => {
         </div>,
         document.body
       )}
+
+      {/* Admin Account Header Banner */}
+      <div className="mb-6 bg-gradient-to-r from-[#004A74]/10 via-[#004A74]/5 to-transparent dark:from-blue-900/30 dark:via-blue-900/10 dark:to-transparent border border-[#004A74]/20 dark:border-blue-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-[#004A74] text-white dark:bg-yellow-400 dark:text-slate-900 flex items-center justify-center font-bold text-lg shadow-sm">
+            <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base">Akun Administrator Aktif</h4>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#004A74] text-white dark:bg-yellow-400 dark:text-slate-900 uppercase">
+                {currentUserRole === 'admin' ? 'Super Admin' : 'Co-Admin'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Kelola keamanan kata sandi akun Admin yang sedang login saat ini.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowMyPasswordModal(true)}
+          className="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-yellow-400 hover:border-primary dark:hover:border-yellow-400 text-xs font-bold shadow-xs hover:shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto shrink-0"
+        >
+          <span className="material-symbols-outlined text-base text-primary dark:text-yellow-400">key</span>
+          <span>Ubah Password Admin Saya</span>
+        </button>
+      </div>
+
+      <ChangePasswordModal 
+        isOpen={showMyPasswordModal} 
+        onClose={() => setShowMyPasswordModal(false)} 
+        userName="Administrator" 
+      />
 
       <div className="bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-xl overflow-hidden hover:shadow-[0_10px_15px_-3px_rgba(0,33,71,0.05)] transition-all duration-500">
         <div className="overflow-x-auto">
