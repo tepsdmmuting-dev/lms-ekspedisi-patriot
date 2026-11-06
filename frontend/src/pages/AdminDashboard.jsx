@@ -46,6 +46,41 @@ const AdminDashboard = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [isExportingGrades, setIsExportingGrades] = useState(false);
 
+  // Rename module group state
+  const [renameModal, setRenameModal] = useState({ show: false, topic: '', oldName: '', newName: '' });
+  const [isRenaming, setIsRenaming] = useState(false);
+
+  const handleSaveRenameModule = async () => {
+    if (!renameModal.newName || !renameModal.newName.trim()) return;
+    try {
+      setIsRenaming(true);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/modules/rename-group', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          topic: renameModal.topic,
+          oldModuleName: renameModal.oldName,
+          newModuleName: renameModal.newName.trim()
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.msg || 'Gagal mengubah judul modul');
+      }
+      setRenameModal({ show: false, topic: '', oldName: '', newName: '' });
+      fetchModules();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Gagal mengubah judul modul');
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
   const fetchLocalVideos = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -744,7 +779,7 @@ const AdminDashboard = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-primary/5 dark:bg-slate-900/40 border border-primary/20 dark:border-slate-700 p-4 rounded-xl">
                         <div>
                             <label className="block text-label-sm font-bold text-primary dark:text-blue-400 mb-1">
-                              Nama Modul / Bab <span className="text-secondary dark:text-yellow-400 font-bold">*</span>
+                              Nama & Judul Modul <span className="text-secondary dark:text-yellow-400 font-bold">*</span>
                             </label>
                             {(() => {
                               const existingModulesInTopic = Array.from(new Set(
@@ -773,7 +808,7 @@ const AdminDashboard = () => {
                                         <option value="Modul 1">Modul 1</option>
                                       )}
                                     </optgroup>
-                                    <option value="__custom__">+ Ketik Nama Modul Baru / Kustom...</option>
+                                    <option value="__custom__">+ Ketik Nama & Judul Modul Baru...</option>
                                   </select>
                                   <input
                                     type="text"
@@ -781,8 +816,11 @@ const AdminDashboard = () => {
                                     value={formData.module_name}
                                     onChange={e => setFormData({ ...formData, module_name: e.target.value })}
                                     className="w-full px-3 py-2 bg-white/90 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-primary"
-                                    placeholder="Contoh: Modul 1: Pengenalan Dasar"
+                                    placeholder="Contoh: Modul 1: Karir Bidang IT & Digital"
                                   />
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Bisa diberi judul lengkap, misal: <strong>Modul 1: Dasar IT & Digital</strong>
+                                  </p>
                                 </div>
                               );
                             })()}
@@ -1091,6 +1129,78 @@ const AdminDashboard = () => {
                     </div>
                 </form>
               </section>
+            </div>,
+            document.body
+          )}
+
+          {renameModal.show && createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-150">
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/60">
+                  <h3 className="font-bold text-base text-slate-800 dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary dark:text-yellow-400">edit_note</span>
+                    <span>Ubah Nama & Judul Modul</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setRenameModal({ show: false, topic: '', oldName: '', newName: '' })}
+                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg"
+                  >
+                    <span className="material-symbols-outlined text-xl">close</span>
+                  </button>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                  <div>Topik: <span className="font-bold text-primary dark:text-yellow-400">{renameModal.topic || 'Umum'}</span></div>
+                  <div>Nama Saat Ini: <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{renameModal.oldName}</span></div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Nama & Judul Modul Baru: <span className="text-secondary dark:text-yellow-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={renameModal.newName}
+                    onChange={(e) => setRenameModal(prev => ({ ...prev, newName: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSaveRenameModule(); }}
+                    placeholder="Contoh: Modul 1: Karir Bidang IT & Digital"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-primary dark:focus:ring-yellow-400 shadow-inner"
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                    Perubahan judul ini otomatis diterapkan ke seluruh materi & kuis yang ada di dalam modul ini.
+                  </p>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700/60">
+                  <button
+                    type="button"
+                    onClick={() => setRenameModal({ show: false, topic: '', oldName: '', newName: '' })}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isRenaming || !renameModal.newName.trim()}
+                    onClick={handleSaveRenameModule}
+                    className="px-4 py-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 dark:bg-yellow-500 dark:hover:bg-yellow-400 dark:text-slate-900 rounded-xl shadow-sm disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {isRenaming ? (
+                      <>
+                        <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                        <span>Menyimpan...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-sm">save</span>
+                        <span>Simpan Judul Baru</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>,
             document.body
           )}
@@ -1428,7 +1538,15 @@ const AdminDashboard = () => {
                             type="button"
                             onClick={() => {
                               const nextModNum = moduleNames.length + 1;
-                              openFormForAdd(isNoTopic ? '' : currentTopic, `Modul ${nextModNum}`);
+                              const defaultName = `Modul ${nextModNum}: `;
+                              const enteredName = prompt(
+                                `Tambah Modul Baru pada Topik "${currentTopic}":\nMasukkan Nama & Judul Modul (Contoh: Modul ${nextModNum}: Dasar & Pengenalan):`,
+                                defaultName
+                              );
+                              if (enteredName !== null) {
+                                const finalName = enteredName.trim() || `Modul ${nextModNum}`;
+                                openFormForAdd(isNoTopic ? '' : currentTopic, finalName);
+                              }
                             }}
                             className="text-xs font-bold text-primary dark:text-yellow-400 hover:underline flex items-center gap-1 cursor-pointer self-start sm:self-auto"
                           >
@@ -1445,7 +1563,15 @@ const AdminDashboard = () => {
                             <p className="text-xs text-slate-400 mt-1 mb-4">Tambahkan materi pertama untuk membentuk modul di topik ini.</p>
                             <button
                               type="button"
-                              onClick={() => openFormForAdd(isNoTopic ? '' : currentTopic, 'Modul 1')}
+                              onClick={() => {
+                                const entered = prompt(
+                                  `Buat Modul Pertama pada Topik "${currentTopic}":\nMasukkan Nama & Judul Modul (Contoh: Modul 1: Dasar & Pengenalan):`,
+                                  'Modul 1: '
+                                );
+                                if (entered !== null) {
+                                  openFormForAdd(isNoTopic ? '' : currentTopic, entered.trim() || 'Modul 1');
+                                }
+                              }}
                               className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg shadow-sm hover:opacity-90 cursor-pointer"
                             >
                               + Buat Modul 1
@@ -1500,6 +1626,20 @@ const AdminDashboard = () => {
                                       <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm md:text-base">
                                         {modName}
                                       </h4>
+                                      <button
+                                        type="button"
+                                        onClick={() => setRenameModal({
+                                          show: true,
+                                          topic: isNoTopic ? '' : currentTopic,
+                                          oldName: modName,
+                                          newName: modName
+                                        })}
+                                        className="px-2 py-0.5 rounded-lg text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-yellow-400 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold border border-slate-200/60 dark:border-slate-700/60 shadow-xs"
+                                        title="Ubah / Tambah Judul Modul (misal: Modul 1: Karir & Branding IT)"
+                                      >
+                                        <span className="material-symbols-outlined text-sm">edit</span>
+                                        <span className="text-[11px] font-medium">Ubah Judul</span>
+                                      </button>
                                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                                         {combinedItems.length} Komponen ({materiList.length} Materi{preTestQuiz ? ' • 1 Pre-Test' : ''}{postTestQuiz ? ' • 1 Post-Test' : ''})
                                       </span>

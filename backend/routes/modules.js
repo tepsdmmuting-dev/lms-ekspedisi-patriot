@@ -121,6 +121,39 @@ router.put('/batch-organize', [authMiddleware, adminMiddleware], async (req, res
   }
 });
 
+// @route   PUT api/modules/rename-group
+// @desc    Rename a module_name across all materi in a topic
+// @access  Private (Admin)
+router.put('/rename-group', [authMiddleware, adminMiddleware], async (req, res) => {
+  const { topic, oldModuleName, newModuleName } = req.body;
+  if (!newModuleName || !newModuleName.trim()) {
+    return res.status(400).json({ msg: 'Nama dan judul modul baru wajib diisi' });
+  }
+
+  const trimmedNew = newModuleName.trim();
+  try {
+    if (topic && topic !== '__none__') {
+      await db.query(
+        `UPDATE modules 
+         SET module_name = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE topic = $2 AND (module_name = $3 OR ($3 = 'Modul 1' AND (module_name IS NULL OR module_name = '')))`,
+        [trimmedNew, topic, oldModuleName]
+      );
+    } else {
+      await db.query(
+        `UPDATE modules 
+         SET module_name = $1, updated_at = CURRENT_TIMESTAMP 
+         WHERE (topic IS NULL OR topic = '' OR topic = '__none__') AND (module_name = $2 OR ($2 = 'Modul 1' AND (module_name IS NULL OR module_name = '')))`,
+        [trimmedNew, oldModuleName]
+      );
+    }
+    res.json({ msg: 'Judul modul berhasil diperbarui', newModuleName: trimmedNew });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   PUT api/modules/:id
 // @desc    Update a module / lesson
 // @access  Private (Admin)
