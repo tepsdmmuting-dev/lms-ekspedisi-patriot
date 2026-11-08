@@ -198,3 +198,4 @@ const ChangePasswordModal = ({ isOpen, onClose, userName = 'Administrator' }) =>
 };
 
 export default ChangePasswordModal;
+

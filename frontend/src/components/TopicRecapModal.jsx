@@ -227,8 +227,8 @@ const TopicRecapModal = ({
         <div className="flex items-center justify-between pb-3 border-b-2 border-slate-900 gap-4">
           <div className="w-16 sm:w-20 shrink-0 flex items-center justify-center">
             <img 
-              src="/logo-ugm.png" 
-              alt="Logo UGM" 
+              src="/logo-kementerian.png" 
+              alt="Logo Kementerian Transmigrasi" 
               className="h-14 sm:h-16 w-auto object-contain"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
@@ -238,25 +238,16 @@ const TopicRecapModal = ({
             <h2 className="text-xs sm:text-sm md:text-base font-bold tracking-wider text-slate-900 uppercase font-serif">
               KEMENTERIAN TRANSMIGRASI REPUBLIK INDONESIA
             </h2>
-            <h3 className="text-[11px] sm:text-xs md:text-sm font-bold tracking-wide text-slate-800 uppercase">
-              UNIVERSITAS GADJAH MADA
-            </h3>
-            <p className="text-xs sm:text-sm font-extrabold text-[#002147] tracking-normal mt-0.5 uppercase">
-              PROGRAM PENGUATAN KAPASITAS EKSPEDISI PATRIOT SDM MUTING
+            <p className="text-xs sm:text-sm md:text-base font-extrabold text-[#002147] tracking-normal mt-1 uppercase">
+              Penguatan Kapasitas SDM, Tim Ekspedisi Patriot 2026
             </p>
             <p className="text-[10px] sm:text-[11px] text-slate-600 italic mt-0.5">
               Kawasan Transmigrasi Muting, Kabupaten Merauke, Provinsi Papua Selatan • Portal: sdmmuting.id
             </p>
           </div>
 
-          <div className="w-16 sm:w-20 shrink-0 flex items-center justify-center">
-            <img 
-              src="/logo-kementerian.png" 
-              alt="Logo Kementerian" 
-              className="h-14 sm:h-16 w-auto object-contain"
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-          </div>
+          {/* Spacer kanan penyeimbang agar teks tetap presisi di tengah */}
+          <div className="w-16 sm:w-20 shrink-0 hidden sm:block pointer-events-none" aria-hidden="true"></div>
         </div>
         <div className="border-b border-slate-400 mt-0.5 mb-6"></div>
 
@@ -311,7 +302,7 @@ const TopicRecapModal = ({
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-200 text-slate-700 leading-relaxed text-[11px] sm:text-xs">
-            Telah menyelesaikan seluruh materi pembelajaran dan evaluasi pemahaman pada topik <strong>{topicName}</strong> sesuai kurikulum resmi Ekspedisi Patriot SDM Muting dengan rincian capaian hasil evaluasi sebagai berikut:
+            Telah menyelesaikan seluruh materi pembelajaran dan evaluasi pemahaman pada topik <strong>{topicName}</strong> sesuai kurikulum resmi Penguatan Kapasitas SDM, Tim Ekspedisi Patriot 2026 dengan rincian capaian hasil evaluasi sebagai berikut:
           </div>
         </div>
 
@@ -459,65 +450,9 @@ const TopicRecapModal = ({
           </div>
         </div>
 
-        {/* Signatures & Formal Verification Section */}
-        <div className="pt-2">
-          <div className="flex justify-between items-end gap-6 text-xs text-slate-800">
-            {/* Left Signature: UGM */}
-            <div className="text-center w-52">
-              <p className="font-semibold text-slate-700">Mengetahui,</p>
-              <p className="font-bold text-slate-900">Koordinator Tim Akademik</p>
-              <p className="text-[11px] text-slate-600">Universitas Gadjah Mada</p>
-              
-              {/* Signature stamp graphic */}
-              <div className="h-20 flex items-center justify-center my-1 relative">
-                <div className="w-16 h-16 rounded-full border-2 border-dashed border-blue-900/30 flex flex-col items-center justify-center text-[8px] text-blue-900 font-bold uppercase rotate-[-12deg] select-none">
-                  <span>UGM</span>
-                  <span>VERIFIED</span>
-                  <span>2026</span>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-900 pt-1 font-bold text-slate-900">
-                Dr. Ir. Sunaryo, M.Eng.
-              </div>
-              <p className="text-[10px] text-slate-500 font-mono">ID: UGM-PATRIOT-2026</p>
-            </div>
-
-            {/* Center: System Verification Seal */}
-            <div className="text-center hidden sm:flex flex-col items-center justify-center">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-300 p-2 flex flex-col items-center justify-center shadow-inner">
-                <span className="material-symbols-outlined text-3xl text-emerald-600">verified</span>
-                <span className="text-[8px] font-extrabold text-slate-700 tracking-wider uppercase mt-0.5">SDM MUTING</span>
-              </div>
-              <span className="text-[9px] font-mono text-slate-400 mt-1">LMS AUTHENTIC</span>
-            </div>
-
-            {/* Right Signature: Kementerian Transmigrasi */}
-            <div className="text-center w-52">
-              <p className="font-semibold text-slate-700">Muting, {dateFormatted}</p>
-              <p className="font-bold text-slate-900">Koordinator Pelatihan Wilayah</p>
-              <p className="text-[11px] text-slate-600">Kementerian Transmigrasi RI</p>
-              
-              {/* Signature stamp graphic */}
-              <div className="h-20 flex items-center justify-center my-1 relative">
-                <div className="w-16 h-16 rounded-full border-2 border-dashed border-emerald-900/30 flex flex-col items-center justify-center text-[8px] text-emerald-900 font-bold uppercase rotate-[10deg] select-none">
-                  <span>KEMTRANS</span>
-                  <span>SAH</span>
-                  <span>2026</span>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-900 pt-1 font-bold text-slate-900">
-                Drs. Hendra Wibowo, M.Si.
-              </div>
-              <p className="text-[10px] text-slate-500 font-mono">NIP: 197805122003121002</p>
-            </div>
-          </div>
-
-          {/* Legal footnote */}
-          <div className="mt-8 pt-3 border-t border-slate-300 text-center text-[10px] text-slate-500 italic">
-            Dokumen ini diterbitkan secara elektronik oleh Sistem Manajemen Pembelajaran (LMS) Ekspedisi Patriot SDM Muting (sdmmuting.id) dan diakui sah sebagai rekapitulasi ketuntasan belajar mandiri peserta.
-          </div>
+        {/* Catatan Terbitan Resmi Elektronik */}
+        <div className="mt-4 pt-3 border-t border-slate-300 text-center text-[10px] text-slate-500 italic">
+          Dokumen ini diterbitkan secara elektronik oleh Sistem Manajemen Pembelajaran (LMS) Ekspedisi Patriot (sdmmuting.id) sebagai lembar rekapitulasi ketuntasan hasil belajar mandiri peserta.
         </div>
       </div>
     </div>,
