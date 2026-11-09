@@ -57,10 +57,11 @@ CREATE TABLE progress_tracking (
     PRIMARY KEY (user_id, module_id)
 );
 
--- Insert some dummy data for testing
+-- Insert default admin & sample trainee (default password: password123)
 INSERT INTO users (name, email, password_hash, role, region, district) VALUES
-('Admin User', 'admin@ep.gov.id', '$2b$10$EpI1Fv6/Gv.c.1Y45v6YjO0P0gYy2Dq6R5bVn6R5bVn6R5bVn6R5b', 'admin', 'Jakarta', 'Central Jakarta'),
-('Budi Santoso', 'budi@trainee.id', '$2b$10$EpI1Fv6/Gv.c.1Y45v6YjO0P0gYy2Dq6R5bVn6R5bVn6R5bVn6R5b', 'trainee', 'Java Region', 'Sleman');
+('Admin User', 'admin@ep.gov.id', '$2b$10$dRA5ebfopdEYXtoYnuUk/.2gkaVARtnQ525JQynfseTM/tBjdkdT2', 'admin', 'Jakarta', 'Central Jakarta'),
+('Budi Santoso', 'budi@trainee.id', '$2b$10$dRA5ebfopdEYXtoYnuUk/.2gkaVARtnQ525JQynfseTM/tBjdkdT2', 'trainee', 'Java Region', 'Sleman')
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO modules (title, description, media_platform, external_url, category, visibility) VALUES
 ('Strategi Pengembangan Kepemimpinan di Era Digital', 'Memahami tantangan baru dalam memimpin tim lintas generasi dengan pendekatan berbasis data dan empati.', 'youtube', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'Pelatihan', 'public'),

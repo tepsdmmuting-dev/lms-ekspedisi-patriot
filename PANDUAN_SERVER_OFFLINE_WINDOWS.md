@@ -123,6 +123,19 @@ Cukup **Double Click** (klik dua kali) file `START_SERVER_WINDOWS.bat`:
 
 ---
 
+## Kredensial Login Admin Default (Instalasi Baru dari GitHub)
+
+Jika Anda baru pertama kali memasang database dari GitHub (`schema.sql` atau database kosong baru), sistem otomatis menyiapkan akun Administrator bawaan:
+
+- **Email**: `admin@ep.gov.id`
+- **Password**: `password123`
+
+*(Sedangkan akun contoh siswa/peserta: `budi@trainee.id` / password: `password123`)*
+
+> **Tips Keamanan:** Setelah berhasil masuk ke Dashboard Admin, segera ubah kata sandi bawaan ini melalui tombol **"Ubah Password Admin"** di pojok kiri bawah atau di menu **Manajemen User**.
+
+---
+
 ## Fitur Offline yang Sudah Tersedia
 - **Font & Icon Mandiri**: Font Poppins dan Material Icons Outlined sudah terpasang lokal di aplikasi (tidak memanggil Google Fonts di internet).
 - **Video Lokal**: Video materi pembelajaran berekstensi `.mp4` dapat diunggah langsung ke sistem dan tersimpan di `backend/uploads/videos/`.
