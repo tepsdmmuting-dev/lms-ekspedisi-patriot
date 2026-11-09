@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 require('dotenv').config();
 
 const app = express();
@@ -47,7 +48,19 @@ const PORT = process.env.PORT || 5000;
 
 // Do not call app.listen in serverless cloud environment (Vercel)
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server started on 0.0.0.0:${PORT}`);
+    console.log(`  - Akses di komputer ini : http://localhost:${PORT}`);
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name] || []) {
+        const isIPv4 = net.family === 'IPv4' || net.family === 4;
+        if (isIPv4 && !net.internal && !net.address.startsWith('169.254.')) {
+          console.log(`  - Akses dari HP / Wi-Fi [${name}] : http://${net.address}:${PORT}`);
+        }
+      }
+    }
+  });
 }
 
 module.exports = app;

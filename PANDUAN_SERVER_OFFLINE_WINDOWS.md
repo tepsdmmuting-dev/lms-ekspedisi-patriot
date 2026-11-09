@@ -83,17 +83,23 @@ Buka **Command Prompt (CMD)** atau **PowerShell** sebagai Administrator, lalu ar
 
 ---
 
-## Langkah 4: Buka Port di Firewall Windows
+## Langkah 4: Buka Port di Firewall Windows (Hanya 1x Saja)
 
-Agar komputer siswa dan guru di jaringan sekolah diizinkan mengakses server ini:
+Secara default, **Windows Defender Firewall** memblokir akses dari HP/laptop lain pada jaringan Wi-Fi (terutama jika Wi-Fi terbaca sebagai *Public Network*). Agar HP dan komputer siswa di Wi-Fi yang sama bisa mengakses server ini:
 
+### Cara Otomatis (1 Klik — Disarankan)
+1. Cari file **`BUKA_FIREWALL_WINDOWS.bat`** di folder project ini.
+2. **Double Click** (atau Klik Kanan -> **Run as administrator**) -> klik **Yes** pada jendela konfirmasi Administrator.
+3. Tunggu hingga muncul pesan `[OK] FIREWALL WINDOWS BERHASIL DIBUKA!` lalu tekan sembarang tombol.
+
+### Cara Manual (Alternatif)
 1. Buka **Control Panel** -> **Windows Defender Firewall** -> klik **Advanced settings** di sebelah kiri.
 2. Klik **Inbound Rules** di panel kiri, lalu klik **New Rule...** di panel kanan.
 3. Pilih **Port**, lalu klik **Next**.
-4. Pilih **TCP**, dan pada **Specific local ports**, ketik: `5000`
+4. Pilih **TCP**, dan pada **Specific local ports**, ketik: `5000, 5123, 3000`
 5. Klik **Next**, pilih **Allow the connection**, lalu klik **Next**.
-6. Centang semua (Domain, Private, Public), klik **Next**.
-7. Beri nama: `LMS Ekspedisi Patriot (Port 5000)`, lalu klik **Finish**.
+6. Centang semua (**Domain**, **Private**, dan **Public**), klik **Next**.
+7. Beri nama: `LMS Ekspedisi Patriot`, lalu klik **Finish**.
 
 ---
 
@@ -115,11 +121,31 @@ Cukup **Double Click** (klik dua kali) file `START_SERVER_WINDOWS.bat`:
 
 1. Pastikan perangkat siswa (HP/Laptop/Komputer Lab) tersambung ke **Wi-Fi atau kabel LAN yang sama** dengan komputer server.
 2. Buka browser apa saja (Google Chrome, Microsoft Edge, Safari, Mozilla Firefox).
-3. Ketik alamat IP server diikuti port 5000, contoh:
+3. Ketik alamat IP server berlabel **`[Wi-Fi]`** atau **`[Ethernet]`** yang muncul di jendela terminal server, diawali dengan `http://` dan diikuti port server (default `:5000`), contoh:
    ```
    http://192.168.1.50:5000
    ```
 4. Website LMS akan langsung terbuka secara instan dan 100% offline!
+
+---
+
+## Troubleshooting: Tidak Bisa Diakses dari HP (Padahal Wi-Fi Sama)
+
+Jika website bisa dibuka di laptop server (`http://localhost:5000`), tetapi **gagal / loading terus di HP**, periksa 5 hal berikut:
+
+1. **Windows Firewall masih memblokir (Penyebab Paling Sering):**
+   - Jalankan file **`BUKA_FIREWALL_WINDOWS.bat`** (klik **Yes** saat diminta izin Administrator). Ini otomatis mengizinkan koneksi masuk dari Wi-Fi walaupun status Wi-Fi di Windows adalah *Public Network*.
+2. **Salah memilih IP Adapter Virtual (VirtualBox / VMware / WSL):**
+   - Jika komputer server memiliki VirtualBox/WSL/Docker, IP `192.168.56.1` atau `172.x.x.x` BUKAN IP Wi-Fi.
+   - Lihat baris log terminal server yang berlabel **`[Wi-Fi]`** atau **`[Wireless LAN]`**, gunakan IP tersebut di HP.
+3. **Browser HP otomatis memakai `https://` atau mengetik `localhost`:**
+   - Di HP **jangan** ketik `localhost`, dan pastikan awalan URL adalah **`http://`** (bukan `https://`), misalnya `http://192.168.1.50:5000`.
+4. **Cek Port Server (`backend/.env`):**
+   - Default mode Windows offline memakai port **`5000`**. Jika Anda mengubah `PORT=` di `backend/.env` (misalnya `5123`), sesuaikan port di belakang alamat IP (`http://192.168.1.50:5123`).
+   - Jika menjalankan mode development manual (`npm run dev`), akses dari HP ke port **`3000`** (Vite), bukan `5123`.
+5. **Fitur *AP Isolation / Client Isolation* pada Router Wi-Fi / Hotspot:**
+   - Beberapa router Wi-Fi publik, *Guest Wi-Fi*, atau hotspot tertentu mengaktifkan fitur **AP Isolation / Client Isolation** yang melarang sesama HP/laptop di Wi-Fi saling terhubung.
+   - Solusi: Sambungkan melalui Wi-Fi utama (bukan *Guest*), matikan *Client/AP Isolation* di pengaturan router, atau ubah profil Wi-Fi di Windows menjadi *Private Network*.
 
 ---
 

@@ -121,27 +121,46 @@ pause
 exit /b 1
 
 :detect_ip
-:: 5. Deteksi IP Komputer Server di Jaringan Sekolah
-set SERVER_IP=127.0.0.1
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
-    set SERVER_IP=%%a
-    goto :found_ip
-)
-:found_ip
-set SERVER_IP=%SERVER_IP: =%
-
+:: 5. Deteksi semua IP Komputer Server di Jaringan Sekolah (Wi-Fi / LAN)
 color 0A
 echo ===================================================================
-echo [STATUS] SERVER OFFLINE SIAP DIGUNAKAN!
+echo [STATUS] MENYIAPKAN SERVER OFFLINE...
 echo.
-echo Komputer ini sekarang bertindak sebagai SERVER OFFLINE sekolah.
-echo Siswa, guru, dan admin di jaringan WiFi / LAN sekolah dapat
-echo membuka browser dan mengetik alamat:
+echo Komputer ini bertindak sebagai SERVER OFFLINE sekolah.
+echo Siswa, guru, dan admin di jaringan Wi-Fi / LAN yang sama dapat
+echo membuka browser di HP atau laptop dan mengetik salah satu alamat:
 echo.
-echo        http://%SERVER_IP%:%SERVER_PORT%
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do call :show_ip "%%a"
+goto :after_ip_list
+
+:show_ip
+set ONE_IP=%~1
+set ONE_IP=%ONE_IP: =%
+if "%ONE_IP%"=="" exit /b 0
+if "%ONE_IP%"=="127.0.0.1" exit /b 0
+echo        http://%ONE_IP%:%SERVER_PORT%
+exit /b 0
+
+:after_ip_list
 echo.
 echo Atau jika dibuka langsung dari komputer server ini:
 echo        http://localhost:%SERVER_PORT%
+echo.
+echo PENTING UNTUK AKSES DARI HP:
+echo  - Ketik awalan http:// secara lengkap (JANGAN https:// atau localhost)
+echo  - Jika muncul lebih dari 1 IP, pilih alamat label [Wi-Fi] / [Ethernet]
+echo    yang tercetak pada log server di bawah (abaikan VirtualBox / WSL).
+netsh advfirewall firewall show rule name="LMS Ekspedisi Patriot" >nul 2>&1
+if %errorlevel% neq 0 goto :warn_firewall
+goto :start_node
+
+:warn_firewall
+echo.
+echo [PERINGATAN FIREWALL] Port server LMS belum dibuka di Windows Firewall!
+echo Jika HP gagal / loading terus saat dibuka, tutup dulu server ini lalu
+echo jalankan file: BUKA_FIREWALL_WINDOWS.bat (klik Yes saat izin Admin).
+
+:start_node
 echo ===================================================================
 echo.
 echo Menjalankan server LMS...
